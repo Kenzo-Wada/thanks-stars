@@ -57,7 +57,7 @@ fn run_command_stars_dependencies() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "⭐ Starred https://github.com/example/dep",
+            "⭐ Starred https://github.com/example/dep via package.json",
         ))
         .stdout(predicate::str::contains(
             "✨ Completed! Starred 1 repositories.",

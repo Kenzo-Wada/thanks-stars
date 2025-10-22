@@ -166,17 +166,24 @@ impl RunEventHandler for CliRunHandler {
             repo_url_source
         };
 
+        let via_label_raw = repo.via.as_deref().unwrap_or("unknown source");
+        let via_text = if use_color {
+            format!(" via {}", via_label_raw.cyan())
+        } else {
+            format!(" via {via_label_raw}")
+        };
+
         if let Some(pb) = &self.progress {
-            pb.set_message(repo.url.clone());
+            pb.set_message(format!("{}{}", repo.url, via_text));
             pb.inc(1);
-            let line = format!("{label} {repo_url}");
+            let line = format!("{label} {repo_url}{via_text}");
             if pb.is_hidden() {
                 println!("{line}");
             } else {
                 pb.println(line);
             }
         } else {
-            println!("{label} {repo_url}");
+            println!("{label} {repo_url}{via_text}");
         }
     }
 

@@ -1,8 +1,10 @@
 use std::path::Path;
+use std::thread;
 
 use crate::ecosystems::{
-    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, NodeDiscoverer,
-    NodeDiscoveryError,
+    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, GoDiscoverer, GoDiscoveryError,
+    NodeDiscoverer, NodeDiscoveryError, PythonDiscoveryError, PythonPipDiscoverer,
+    PythonUvDiscoverer,
 };
 use url::Url;
 
@@ -11,12 +13,16 @@ pub struct Repository {
     pub owner: String,
     pub name: String,
     pub url: String,
+    pub via: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Framework {
     Node,
     Cargo,
+    Go,
+    PythonUv,
+    PythonPip,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -25,6 +31,10 @@ pub enum DiscoveryError {
     Node(#[from] NodeDiscoveryError),
     #[error(transparent)]
     Cargo(#[from] CargoDiscoveryError),
+    #[error(transparent)]
+    Go(#[from] GoDiscoveryError),
+    #[error(transparent)]
+    Python(#[from] PythonDiscoveryError),
 }
 
 pub trait Discoverer {
@@ -39,6 +49,15 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     if project_root.join("Cargo.toml").exists() {
         frameworks.push(Framework::Cargo);
     }
+    if project_root.join("go.mod").exists() {
+        frameworks.push(Framework::Go);
+    }
+    if project_root.join("uv.lock").exists() {
+        frameworks.push(Framework::PythonUv);
+    }
+    if project_root.join("requirements.txt").exists() {
+        frameworks.push(Framework::PythonPip);
+    }
     frameworks
 }
 
@@ -46,20 +65,55 @@ pub fn discover_for_frameworks(
     project_root: &Path,
     frameworks: &[Framework],
 ) -> Result<Vec<Repository>, DiscoveryError> {
-    let mut repositories = Vec::new();
-    for framework in frameworks {
-        match framework {
-            Framework::Node => {
-                let discoverer = NodeDiscoverer::new();
-                repositories.extend(discoverer.discover(project_root)?);
-            }
-            Framework::Cargo => {
-                let discoverer = CargoDiscoverer::new(CommandMetadataFetcher);
-                repositories.extend(discoverer.discover(project_root)?);
-            }
+    thread::scope(|scope| {
+        let mut handles = Vec::with_capacity(frameworks.len());
+
+        for (index, framework) in frameworks.iter().copied().enumerate() {
+            handles.push(scope.spawn(
+                move || -> Result<(usize, Vec<Repository>), DiscoveryError> {
+                    let repositories = match framework {
+                        Framework::Node => {
+                            let discoverer = NodeDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Cargo => {
+                            let discoverer = CargoDiscoverer::new(CommandMetadataFetcher);
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Go => {
+                            let discoverer = GoDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::PythonUv => {
+                            let discoverer = PythonUvDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::PythonPip => {
+                            let discoverer = PythonPipDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                    };
+
+                    Ok((index, repositories))
+                },
+            ));
         }
-    }
-    Ok(repositories)
+
+        let mut ordered = Vec::with_capacity(handles.len());
+        for handle in handles {
+            let result = handle.join().expect("framework discovery task panicked")?;
+            ordered.push(result);
+        }
+
+        ordered.sort_by_key(|(index, _)| *index);
+
+        let mut repositories = Vec::new();
+        for (_, mut repos) in ordered {
+            repositories.append(&mut repos);
+        }
+
+        Ok(repositories)
+    })
 }
 
 pub fn parse_github_repository(input: &str) -> Option<Repository> {
@@ -121,6 +175,7 @@ fn build_repository(owner: &str, repo: &str) -> Option<Repository> {
         owner: owner.to_string(),
         name: repo.to_string(),
         url: format!("https://github.com/{owner}/{repo}"),
+        via: None,
     })
 }
 

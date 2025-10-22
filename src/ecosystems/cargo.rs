@@ -83,7 +83,8 @@ impl<F: MetadataFetcher> CargoDiscoverer<F> {
         for id in dependency_ids {
             if let Some(package) = package_map.get(&id) {
                 if let Some(repo) = &package.repository {
-                    if let Some(repository) = parse_github_repository(repo) {
+                    if let Some(mut repository) = parse_github_repository(repo) {
+                        repository.via = Some("Cargo.toml".to_string());
                         repositories.push(repository);
                     }
                 }

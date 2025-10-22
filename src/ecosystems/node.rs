@@ -46,7 +46,8 @@ impl NodeDiscoverer {
                 Err(_) => continue,
             };
             if let Some(repo) = repository_from_package(&dependency_json) {
-                if let Some(repository) = parse_github_repository(&repo) {
+                if let Some(mut repository) = parse_github_repository(&repo) {
+                    repository.via = Some("package.json".to_string());
                     repositories.push(repository);
                 }
             }
