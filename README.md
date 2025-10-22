@@ -33,26 +33,26 @@ Choose the installation method that best fits your environment:
 ### 🍺 Homebrew
 
 ```bash
-brew tap Kenzo-Wada/thanks-stars
-brew install thanks-stars
+$ brew tap Kenzo-Wada/thanks-stars
+$ brew install thanks-stars
 ```
 
 ### 🦀 Cargo
 
 ```bash
-cargo install thanks-stars
+$ cargo install thanks-stars
 ```
 
 ### 💻 Shell installer (macOS/Linux)
 
 ```bash
-curl -LSfs https://github.com/Kenzo-Wada/thanks-stars/releases/latest/download/thanks-stars-installer.sh | sh
+$ curl -LSfs https://github.com/Kenzo-Wada/thanks-stars/releases/latest/download/thanks-stars-installer.sh | sh
 ```
 
 ### 🪟 PowerShell installer (Windows)
 
 ```powershell
-iwr https://github.com/Kenzo-Wada/thanks-stars/releases/latest/download/thanks-stars-installer.ps1 -useb | iex
+$ iwr https://github.com/Kenzo-Wada/thanks-stars/releases/latest/download/thanks-stars-installer.ps1 -useb | iex
 ```
 
 ### 🐧 Linux package managers
@@ -70,7 +70,7 @@ Authenticate once with a GitHub personal access token, then run the tool in the 
 ### Authenticate with GitHub
 
 ```bash
-thanks-stars auth --token ghp_your_token_here
+$ thanks-stars auth --token ghp_your_token_here
 ```
 
 If you omit `--token`, the command will prompt you to paste it securely. By default the configuration is stored in a user-specific `config.toml`; you can override the storage location with the `THANKS_STARS_CONFIG_DIR` environment variable.
@@ -78,13 +78,13 @@ If you omit `--token`, the command will prompt you to paste it securely. By defa
 ### Run inside your project
 
 ```bash
-thanks-stars
+$ thanks-stars
 ```
 
 Example output:
 
 ```
-thanks-stars
+$ thanks-stars
 ⭐ Starred https://github.com/xxx/xxx via Cargo.toml
 ⭐ Starred https://github.com/xxx/xxx via package.json
 ...
