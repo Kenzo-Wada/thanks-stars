@@ -1,0 +1,31 @@
+[git]
+conventional = true
+commit_parsers = [
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Bug Fixes" },
+  { message = "^doc", group = "Documentation" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactors" },
+  { message = "^style", group = "Style" },
+  { message = "^test", group = "Testing" },
+  { message = "^chore", group = "Miscellaneous" },
+  { message = ".*", group = "Other Changes" },
+]
+
+[changelog]
+header = "## What's Changed"
+body = """
+{% for group, group_commits in commits | group_by(attribute="group") %}
+{% set trimmed_group = group | default(value="Other Changes") | trim %}
+{% set visible_commits = group_commits %}
+{% if visible_commits | length > 0 %}
+### {{ trimmed_group }}
+{% for commit in visible_commits %}
+- {{ commit.message | trim }}
+{% endfor %}
+
+{% endif %}
+{% endfor %}
+"""
+footer = ""
+trim = true

@@ -15,6 +15,8 @@ targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-
 unix-archive = ".tar.gz"
 # The archive format to use for windows builds (defaults .zip)
 windows-archive = ".zip"
+# Allow local tweaks to the generated CI workflow
+allow-dirty = ["ci"]
 # A GitHub repo to push Homebrew formulas to
 tap = "Kenzo-Wada/thanks-stars"
 # Publish jobs to run in CI

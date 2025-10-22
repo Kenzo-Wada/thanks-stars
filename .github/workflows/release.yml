@@ -266,17 +266,120 @@ jobs:
         run: |
           # Remove the granular manifests
           rm -f artifacts/*-dist-manifest.json
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+      - name: Generate release notes
+        id: release_notes
+        env:
+          ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
+          RELEASE_TAG: "${{ needs.plan.outputs.tag }}"
+          REPOSITORY: "${{ github.repository }}"
+        run: |
+          python <<'PY'
+import os
+import pathlib
+import re
+import subprocess
+
+body = os.environ["ANNOUNCEMENT_BODY"]
+repo = os.environ["REPOSITORY"]
+tag = os.environ["RELEASE_TAG"]
+
+
+def replace_install_urls(text: str) -> str:
+    pattern = re.compile(
+        "https://github.com/"
+        + re.escape(repo)
+        + "/releases/download/"
+        + re.escape(tag)
+        + r"/(thanks-stars-installer\.(?:sh|ps1))"
+    )
+
+    def _replace(match):
+        return f"https://github.com/{repo}/releases/latest/download/{match.group(1)}"
+
+    return pattern.sub(_replace, text)
+
+
+body = replace_install_urls(body).strip()
+version = tag[1:] if tag.startswith("v") else tag
+
+changelog_path = pathlib.Path("CHANGELOG.md")
+changelog = ""
+if changelog_path.exists():
+    changelog_text = changelog_path.read_text(encoding="utf-8")
+    changelog_pattern = re.compile(
+        rf"^##\s+\[?{re.escape(version)}\]?(?:\s+-\s+[^\n]+)?\n(.*?)(?=^##\s+\[?.+\]?|\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    match = changelog_pattern.search(changelog_text)
+    if match:
+        changelog = match.group(1).strip()
+if not changelog:
+    changelog = "_No changelog entries for this release._"
+
+subprocess.run(["git", "fetch", "--tags", "--force"], check=False)
+tags_proc = subprocess.run(
+    ["git", "tag", "--sort=-version:refname"], capture_output=True, text=True, check=False
+)
+tags = [line.strip() for line in tags_proc.stdout.splitlines() if line.strip()]
+prev_tag = None
+if tag in tags:
+    idx = tags.index(tag)
+    if idx + 1 < len(tags):
+        prev_tag = tags[idx + 1]
+elif len(tags) > 1:
+    prev_tag = tags[1]
+
+range_spec = f"{prev_tag}..{tag}" if prev_tag else tag
+log_proc = subprocess.run(
+    ["git", "log", range_spec, "--format=%aN"], capture_output=True, text=True, check=False
+)
+contributors = sorted({line.strip() for line in log_proc.stdout.splitlines() if line.strip()})
+
+changes = subprocess.check_output(
+    [
+        "git-cliff",
+        "--config",
+        "cliff.toml",
+        "--tag",
+        tag,
+        "--strip",
+        "footer",
+    ],
+    text=True,
+).strip()
+
+sections = [body]
+if changes:
+    sections.append(changes)
+sections.extend(
+    [
+        "## Changelog",
+        changelog,
+        "## Contributors",
+        "\n".join(f"- {name}" for name in contributors)
+        if contributors
+        else "_No new contributors in this release._",
+    ]
+)
+
+notes = "\n\n".join(section.strip() for section in sections if section.strip()) + "\n"
+notes_path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "notes.md"
+notes_path.write_text(notes, encoding="utf-8")
+
+with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+    fh.write(f"path={notes_path}\n")
+          PY
       - name: Create GitHub Release
         env:
           PRERELEASE_FLAG: "${{ fromJson(steps.host.outputs.manifest).announcement_is_prerelease && '--prerelease' || '' }}"
           ANNOUNCEMENT_TITLE: "${{ fromJson(steps.host.outputs.manifest).announcement_title }}"
-          ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
           RELEASE_COMMIT: "${{ github.sha }}"
         run: |
-          # Write and read notes from a file to avoid quoting breaking things
-          echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/notes.txt
-
-          gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
+          gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "${{ steps.release_notes.outputs.path }}" artifacts/*
 
   publish-homebrew-formula:
     needs:
@@ -294,6 +397,7 @@ jobs:
         with:
           persist-credentials: true
           repository: "Kenzo-Wada/thanks-stars"
+          ref: ${{ github.event.repository.default_branch || 'main' }}
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       # So we have access to the formula
       - name: Fetch homebrew formulae
