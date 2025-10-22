@@ -98,9 +98,7 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     {
         frameworks.push(Framework::Ruby);
     }
-    if project_root.join("composer.lock").exists()
-        || project_root.join("composer.json").exists()
-    {
+    if project_root.join("composer.lock").exists() || project_root.join("composer.json").exists() {
         frameworks.push(Framework::Composer);
     }
     frameworks

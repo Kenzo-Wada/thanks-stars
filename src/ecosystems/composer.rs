@@ -30,10 +30,7 @@ impl ComposerDiscoverer {
         Self
     }
 
-    pub fn discover(
-        &self,
-        project_root: &Path,
-    ) -> Result<Vec<Repository>, ComposerDiscoveryError> {
+    pub fn discover(&self, project_root: &Path) -> Result<Vec<Repository>, ComposerDiscoveryError> {
         let lock_path = project_root.join("composer.lock");
         let content = match fs::read_to_string(&lock_path) {
             Ok(content) => content,
@@ -46,12 +43,11 @@ impl ComposerDiscoverer {
             }
         };
 
-        let lock: ComposerLock = serde_json::from_str(&content).map_err(|source| {
-            ComposerDiscoveryError::Json {
+        let lock: ComposerLock =
+            serde_json::from_str(&content).map_err(|source| ComposerDiscoveryError::Json {
                 path: lock_path.display().to_string(),
                 source,
-            }
-        })?;
+            })?;
 
         let mut repositories = Vec::new();
         let mut seen = BTreeSet::new();
@@ -129,8 +125,8 @@ struct ComposerSupport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use serde_json::json;
+    use std::fs;
     use tempfile::tempdir;
 
     #[test]
@@ -164,11 +160,7 @@ mod tests {
             ]
         });
 
-        fs::write(
-            dir.path().join("composer.lock"),
-            lock.to_string(),
-        )
-        .unwrap();
+        fs::write(dir.path().join("composer.lock"), lock.to_string()).unwrap();
 
         let discoverer = ComposerDiscoverer::new();
         let mut repos = discoverer.discover(dir.path()).unwrap();
