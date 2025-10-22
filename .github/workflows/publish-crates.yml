@@ -1,0 +1,39 @@
+name: PublishCrates
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+
+jobs:
+  cargo-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Read release metadata
+        id: release
+        run: |
+          printf '%s' '${{ inputs.plan }}' > plan.json
+          if ! jq -e '.announcement_tag? // empty | length > 0' plan.json >/dev/null; then
+            echo "The release workflow must provide a tag before publishing to crates.io" >&2
+            exit 1
+          fi
+          tag=$(jq -r '.announcement_tag' plan.json)
+          version=$(jq -r '.releases[0].app_version' plan.json)
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Preparing to publish thanks-stars ${version} for ${tag}"
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
+            echo "CARGO_REGISTRY_TOKEN secret is required" >&2
+            exit 1
+          fi
+          cargo publish -p thanks-stars --token "${CARGO_REGISTRY_TOKEN}" --locked

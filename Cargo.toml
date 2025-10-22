@@ -12,6 +12,10 @@ readme = "README.md"
 keywords = ["github", "stars", "cli", "dependencies"]
 categories = ["command-line-utilities"]
 
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

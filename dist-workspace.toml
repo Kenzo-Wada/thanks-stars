@@ -1,0 +1,21 @@
+[workspace]
+members = ["cargo:."]
+
+[dist]
+cargo-dist-version = "0.30.0"
+ci = "github"
+installers = ["shell", "powershell", "homebrew"]
+targets = [
+  "x86_64-unknown-linux-gnu",
+  "x86_64-unknown-linux-musl",
+  "x86_64-apple-darwin",
+  "aarch64-apple-darwin",
+  "x86_64-pc-windows-msvc"
+]
+unix-archive = ".tar.gz"
+windows-archive = ".zip"
+tap = "Kenzo-Wada/thanks-stars"
+publish-jobs = ["homebrew", "./publish-crates"]
+pr-run-mode = "plan"
+install-updater = true
+install-path = "CARGO_HOME"
