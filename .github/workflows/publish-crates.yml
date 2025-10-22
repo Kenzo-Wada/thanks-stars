@@ -18,13 +18,13 @@ jobs:
       - name: Read release metadata
         id: release
         run: |
-          printf '%s' '${{ inputs.plan }}' > plan.json
-          if ! jq -e '.announcement_tag? // empty | length > 0' plan.json >/dev/null; then
+          plan='${{ inputs.plan }}'
+          if ! jq -e '.announcement_tag? // empty | length > 0' <<<"${plan}" >/dev/null; then
             echo "The release workflow must provide a tag before publishing to crates.io" >&2
             exit 1
           fi
-          tag=$(jq -r '.announcement_tag' plan.json)
-          version=$(jq -r '.releases[0].app_version' plan.json)
+          tag=$(jq -r '.announcement_tag' <<<"${plan}")
+          version=$(jq -r '.releases[0].app_version' <<<"${plan}")
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Preparing to publish thanks-stars ${version} for ${tag}"

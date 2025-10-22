@@ -21,7 +21,7 @@ body = """
 {% if visible_commits | length > 0 %}
 ### {{ trimmed_group }}
 {% for commit in visible_commits %}
-- {{ commit.message | trim }}
+- {{ commit.message | trim }} (commit: {{ commit.id }})
 {% endfor %}
 
 {% endif %}

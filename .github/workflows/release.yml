@@ -276,103 +276,7 @@ jobs:
           ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
           RELEASE_TAG: "${{ needs.plan.outputs.tag }}"
           REPOSITORY: "${{ github.repository }}"
-        run: |
-          python <<'PY'
-import os
-import pathlib
-import re
-import subprocess
-
-body = os.environ["ANNOUNCEMENT_BODY"]
-repo = os.environ["REPOSITORY"]
-tag = os.environ["RELEASE_TAG"]
-
-
-def replace_install_urls(text: str) -> str:
-    pattern = re.compile(
-        "https://github.com/"
-        + re.escape(repo)
-        + "/releases/download/"
-        + re.escape(tag)
-        + r"/(thanks-stars-installer\.(?:sh|ps1))"
-    )
-
-    def _replace(match):
-        return f"https://github.com/{repo}/releases/latest/download/{match.group(1)}"
-
-    return pattern.sub(_replace, text)
-
-
-body = replace_install_urls(body).strip()
-version = tag[1:] if tag.startswith("v") else tag
-
-changelog_path = pathlib.Path("CHANGELOG.md")
-changelog = ""
-if changelog_path.exists():
-    changelog_text = changelog_path.read_text(encoding="utf-8")
-    changelog_pattern = re.compile(
-        rf"^##\s+\[?{re.escape(version)}\]?(?:\s+-\s+[^\n]+)?\n(.*?)(?=^##\s+\[?.+\]?|\Z)",
-        re.MULTILINE | re.DOTALL,
-    )
-    match = changelog_pattern.search(changelog_text)
-    if match:
-        changelog = match.group(1).strip()
-if not changelog:
-    changelog = "_No changelog entries for this release._"
-
-subprocess.run(["git", "fetch", "--tags", "--force"], check=False)
-tags_proc = subprocess.run(
-    ["git", "tag", "--sort=-version:refname"], capture_output=True, text=True, check=False
-)
-tags = [line.strip() for line in tags_proc.stdout.splitlines() if line.strip()]
-prev_tag = None
-if tag in tags:
-    idx = tags.index(tag)
-    if idx + 1 < len(tags):
-        prev_tag = tags[idx + 1]
-elif len(tags) > 1:
-    prev_tag = tags[1]
-
-range_spec = f"{prev_tag}..{tag}" if prev_tag else tag
-log_proc = subprocess.run(
-    ["git", "log", range_spec, "--format=%aN"], capture_output=True, text=True, check=False
-)
-contributors = sorted({line.strip() for line in log_proc.stdout.splitlines() if line.strip()})
-
-changes = subprocess.check_output(
-    [
-        "git-cliff",
-        "--config",
-        "cliff.toml",
-        "--tag",
-        tag,
-        "--strip",
-        "footer",
-    ],
-    text=True,
-).strip()
-
-sections = [body]
-if changes:
-    sections.append(changes)
-sections.extend(
-    [
-        "## Changelog",
-        changelog,
-        "## Contributors",
-        "\n".join(f"- {name}" for name in contributors)
-        if contributors
-        else "_No new contributors in this release._",
-    ]
-)
-
-notes = "\n\n".join(section.strip() for section in sections if section.strip()) + "\n"
-notes_path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "notes.md"
-notes_path.write_text(notes, encoding="utf-8")
-
-with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
-    fh.write(f"path={notes_path}\n")
-          PY
+        run: scripts/generate-release-notes.sh
       - name: Create GitHub Release
         env:
           PRERELEASE_FLAG: "${{ fromJson(steps.host.outputs.manifest).announcement_is_prerelease && '--prerelease' || '' }}"
@@ -389,29 +293,46 @@ with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PLAN: ${{ needs.plan.outputs.val }}
-      GITHUB_USER: "axo bot"
-      GITHUB_EMAIL: "admin+bot@axo.dev"
     if: ${{ !fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          repository: "Kenzo-Wada/thanks-stars"
-          ref: ${{ github.event.repository.default_branch || 'main' }}
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - name: Prepare Homebrew tap repository
+        env:
+          TAP_REPO: "Kenzo-Wada/homebrew-thanks-stars"
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAP_DIR="homebrew-tap"
+          AUTH_REMOTE="https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git"
+
+          echo "::add-mask::${TAP_TOKEN}"
+
+          if git ls-remote --exit-code "$AUTH_REMOTE" HEAD > /dev/null 2>&1; then
+            git clone "$AUTH_REMOTE" "$TAP_DIR"
+          else
+            git init --initial-branch=main "$TAP_DIR"
+            git -C "$TAP_DIR" remote add origin "$AUTH_REMOTE"
+          fi
       # So we have access to the formula
       - name: Fetch homebrew formulae
         uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
-          path: Formula/
+          path: homebrew-tap/Formula/
           merge-multiple: true
       # This is extra complex because you can make your Formula name not match your app name
       # so we need to find releases with a *.rb file, and publish with that filename.
       - name: Commit formula files
+        env:
+          GIT_COMMIT_USER_NAME: ${{ github.actor != '' && github.actor || 'github-actions[bot]' }}
+          GIT_COMMIT_USER_EMAIL: ${{ github.actor != '' && format('{0}@users.noreply.github.com', github.actor) || '41898282+github-actions[bot]@users.noreply.github.com' }}
+        working-directory: homebrew-tap
         run: |
-          git config --global user.name "${GITHUB_USER}"
-          git config --global user.email "${GITHUB_EMAIL}"
+          git config --global user.name "${GIT_COMMIT_USER_NAME}"
+          git config --global user.email "${GIT_COMMIT_USER_EMAIL}"
+
+          current_branch=$(git symbolic-ref --quiet --short HEAD || echo "main")
+
+          committed=0
 
           for release in $(echo "$PLAN" | jq --compact-output '.releases[] | select([.artifacts[] | endswith(".rb")] | any)'); do
             filename=$(echo "$release" | jq '.artifacts[] | select(endswith(".rb"))' --raw-output)
@@ -424,9 +345,24 @@ with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
             brew style --except-cops FormulaAudit/Homepage,FormulaAudit/Desc,FormulaAuditStrict --fix "Formula/${filename}" || true
 
             git add "Formula/${filename}"
+            if git diff --cached --quiet; then
+              echo "No updates needed for ${filename}"
+              git reset HEAD -- "Formula/${filename}"
+              continue
+            fi
             git commit -m "${name} ${version}"
+            committed=1
           done
-          git push
+          if [ "$committed" -eq 0 ]; then
+            echo "No formula updates to push"
+            exit 0
+          fi
+
+          if git rev-parse --abbrev-ref --symbolic-full-name "@{u}" > /dev/null 2>&1; then
+            git push
+          else
+            git push --set-upstream origin "$current_branch"
+          fi
 
   custom-publish-crates:
     needs:
