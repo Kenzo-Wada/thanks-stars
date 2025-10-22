@@ -57,7 +57,7 @@ $ iwr https://github.com/Kenzo-Wada/thanks-stars/releases/latest/download/thanks
 
 ### 🐧 Linux package managers
 
-Native packages for `apt`/`apt-get`, `pacman`, and Nix are not published yet. Until a maintainer volunteers to host those repositories, please use one of the installers above or the manual download method. Contributions toward official Linux packages are very welcome—see [CONTRIBUTING.md](CONTRIBUTING.md) for coordination details.
+Native packages like `apt`/`apt-get`, `pacman`, `nix`, etc... are not published yet. Until a maintainer volunteers to host those repositories, please use one of the installers above or the manual download method. Contributions toward official Linux packages are very welcome—see [CONTRIBUTING.md](CONTRIBUTING.md) for coordination details.
 
 ### 📦 Manual download
 
