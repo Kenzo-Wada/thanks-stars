@@ -1692,6 +1692,7 @@ dependencies = [
  "indicatif",
  "owo-colors",
  "predicates",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

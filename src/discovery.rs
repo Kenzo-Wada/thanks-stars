@@ -2,9 +2,10 @@ use std::path::Path;
 use std::thread;
 
 use crate::ecosystems::{
-    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, GoDiscoverer, GoDiscoveryError,
-    NodeDiscoverer, NodeDiscoveryError, PythonDiscoveryError, PythonPipDiscoverer,
-    PythonUvDiscoverer,
+    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, DenoDiscoverer,
+    DenoDiscoveryError, GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError,
+    JsrDiscoverer, JsrDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoveryError,
+    PythonPipDiscoverer, PythonUvDiscoverer, RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -23,6 +24,10 @@ pub enum Framework {
     Go,
     PythonUv,
     PythonPip,
+    Deno,
+    Jsr,
+    Gradle,
+    Ruby,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +40,14 @@ pub enum DiscoveryError {
     Go(#[from] GoDiscoveryError),
     #[error(transparent)]
     Python(#[from] PythonDiscoveryError),
+    #[error(transparent)]
+    Deno(#[from] DenoDiscoveryError),
+    #[error(transparent)]
+    Jsr(#[from] JsrDiscoveryError),
+    #[error(transparent)]
+    Gradle(#[from] GradleDiscoveryError),
+    #[error(transparent)]
+    Ruby(#[from] RubyDiscoveryError),
 }
 
 pub trait Discoverer {
@@ -57,6 +70,29 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     }
     if project_root.join("requirements.txt").exists() {
         frameworks.push(Framework::PythonPip);
+    }
+    if project_root.join("deno.json").exists()
+        || project_root.join("deno.jsonc").exists()
+        || project_root.join("deno.lock").exists()
+    {
+        frameworks.push(Framework::Deno);
+    }
+    if project_root.join("jsr.json").exists() {
+        frameworks.push(Framework::Jsr);
+    }
+    if project_root.join("gradle.lockfile").exists()
+        || project_root.join("build.gradle").exists()
+        || project_root.join("build.gradle.kts").exists()
+        || project_root.join("settings.gradle").exists()
+        || project_root.join("settings.gradle.kts").exists()
+    {
+        frameworks.push(Framework::Gradle);
+    }
+    if project_root.join("Gemfile").exists()
+        || project_root.join("Gemfile.lock").exists()
+        || project_root.join("gems.rb").exists()
+    {
+        frameworks.push(Framework::Ruby);
     }
     frameworks
 }
@@ -90,6 +126,22 @@ pub fn discover_for_frameworks(
                         }
                         Framework::PythonPip => {
                             let discoverer = PythonPipDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Deno => {
+                            let discoverer = DenoDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Jsr => {
+                            let discoverer = JsrDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Gradle => {
+                            let discoverer = GradleDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Ruby => {
+                            let discoverer = RubyDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };

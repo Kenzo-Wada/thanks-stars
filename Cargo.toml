@@ -25,6 +25,7 @@ url = "2"
 indicatif = "0.18"
 owo-colors = { version = "4", features = ["supports-colors"] }
 supports-color = "3.0"
+regex = "1"
 
 [dev-dependencies]
 assert_cmd = "2"
