@@ -1,0 +1,5 @@
+# Default owners for this repository
+*       @Kenzo-Wada
+
+# Ecosystem detection logic
+/src/ecosystems/    @Kenzo-Wada

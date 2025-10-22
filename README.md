@@ -23,6 +23,8 @@ The following ecosystems are currently detected when you run the tool:
 | Deno                 | `deno.json` / `deno.jsonc`          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)     |
 | JSR                  | `jsr.json`                          | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)       |
 
+Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
+
 ## 🚀 Installation
 
 Choose the installation method that best fits your environment:
