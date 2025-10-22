@@ -20,6 +20,7 @@ The following ecosystems are currently detected when you run the tool:
 | Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)         |
 | Python (pip, uv)     | `requirements.txt` / `uv.lock`      | [`src/ecosystems/python.rs`](src/ecosystems/python.rs) |
 | Ruby (Bundler)       | `Gemfile.lock`                      | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)     |
+| Composer (PHP)       | `composer.lock` / `composer.json`   | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
 | Deno                 | `deno.json` / `deno.jsonc`          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)     |
 | JSR                  | `jsr.json`                          | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)       |
 

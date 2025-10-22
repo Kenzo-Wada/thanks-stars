@@ -2,10 +2,11 @@ use std::path::Path;
 use std::thread;
 
 use crate::ecosystems::{
-    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, DenoDiscoverer,
-    DenoDiscoveryError, GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError,
-    JsrDiscoverer, JsrDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoveryError,
-    PythonPipDiscoverer, PythonUvDiscoverer, RubyDiscoverer, RubyDiscoveryError,
+    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
+    ComposerDiscoveryError, DenoDiscoverer, DenoDiscoveryError, GoDiscoverer, GoDiscoveryError,
+    GradleDiscoverer, GradleDiscoveryError, JsrDiscoverer, JsrDiscoveryError, NodeDiscoverer,
+    NodeDiscoveryError, PythonDiscoveryError, PythonPipDiscoverer, PythonUvDiscoverer,
+    RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -28,6 +29,7 @@ pub enum Framework {
     Jsr,
     Gradle,
     Ruby,
+    Composer,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -48,6 +50,8 @@ pub enum DiscoveryError {
     Gradle(#[from] GradleDiscoveryError),
     #[error(transparent)]
     Ruby(#[from] RubyDiscoveryError),
+    #[error(transparent)]
+    Composer(#[from] ComposerDiscoveryError),
 }
 
 pub trait Discoverer {
@@ -93,6 +97,11 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
         || project_root.join("gems.rb").exists()
     {
         frameworks.push(Framework::Ruby);
+    }
+    if project_root.join("composer.lock").exists()
+        || project_root.join("composer.json").exists()
+    {
+        frameworks.push(Framework::Composer);
     }
     frameworks
 }
@@ -142,6 +151,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Ruby => {
                             let discoverer = RubyDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Composer => {
+                            let discoverer = ComposerDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };
