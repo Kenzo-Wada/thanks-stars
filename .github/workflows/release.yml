@@ -21,7 +21,7 @@ on:
   pull_request:
   push:
     tags:
-      - '**[0-9]+.[0-9]+.[0-9]+*'
+      - "**[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
   plan:
@@ -221,7 +221,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: "Kenzo-Wada/homebrew-thanks-stars"
+          repository: "Kenzo-Wada/thanks-stars"
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       - name: Fetch homebrew formulae
         uses: actions/download-artifact@v4

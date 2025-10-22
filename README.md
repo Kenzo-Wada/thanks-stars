@@ -12,17 +12,17 @@ Thanks Stars is a command-line companion that stars the GitHub repositories powe
 
 The following ecosystems are currently detected when you run the tool:
 
-| Ecosystem            | Detection Source                    | Implementation                                         |
-| -------------------- | ----------------------------------- | ------------------------------------------------------ |
-| Cargo (Rust)         | `Cargo.lock` / `Cargo.toml`         | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)   |
-| Node.js              | `package.json` with                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)     |
-| Gradle (Java/Kotlin) | `build.gradle` / `build.gradle.kts` | [`src/ecosystems/gradle.rs`](src/ecosystems/gradle.rs) |
-| Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)         |
-| Python (pip, uv)     | `requirements.txt` / `uv.lock`      | [`src/ecosystems/python.rs`](src/ecosystems/python.rs) |
-| Ruby (Bundler)       | `Gemfile.lock`                      | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)     |
+| Ecosystem            | Detection Source                    | Implementation                                             |
+| -------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| Cargo (Rust)         | `Cargo.lock` / `Cargo.toml`         | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
+| Node.js              | `package.json` with                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
+| Gradle (Java/Kotlin) | `build.gradle` / `build.gradle.kts` | [`src/ecosystems/gradle.rs`](src/ecosystems/gradle.rs)     |
+| Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
+| Python (pip, uv)     | `requirements.txt` / `uv.lock`      | [`src/ecosystems/python.rs`](src/ecosystems/python.rs)     |
+| Ruby (Bundler)       | `Gemfile.lock`                      | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
 | Composer (PHP)       | `composer.lock` / `composer.json`   | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
-| Deno                 | `deno.json` / `deno.jsonc`          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)     |
-| JSR                  | `jsr.json`                          | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)       |
+| Deno                 | `deno.json` / `deno.jsonc`          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)         |
+| JSR                  | `jsr.json`                          | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)           |
 
 Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
 
@@ -65,17 +65,34 @@ Grab the archive for your platform from the [GitHub Releases](https://github.com
 
 ## 🛠 Usage
 
-Authenticate once with a GitHub personal access token, then run the tool in the root of your project:
+Authenticate once with a GitHub personal access token, then run the tool in the root of your project.
+
+### Authenticate with GitHub
 
 ```bash
 thanks-stars auth --token ghp_your_token_here
-thanks-stars run
 ```
 
 If you omit `--token`, the command will prompt you to paste it securely. By default the configuration is stored in a user-specific `config.toml`; you can override the storage location with the `THANKS_STARS_CONFIG_DIR` environment variable.
 
+### Run inside your project
+
+```bash
+thanks-stars
+```
+
+Example output:
+
+```
+thanks-stars
+⭐ Starred https://github.com/xxx/xxx via Cargo.toml
+⭐ Starred https://github.com/xxx/xxx via package.json
+...
+✨ Completed! Starred 10 repositories.
+```
+
 Run `thanks-stars --help` to explore all available options.
 
-## ⭐ Show Some Love
+---
 
 Thanks Stars helps you recognize the maintainers who keep your stack running—so while you're at it, don't forget to ⭐ this project too!
