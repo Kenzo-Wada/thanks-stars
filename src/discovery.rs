@@ -4,7 +4,7 @@ use std::thread;
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
     ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, NodeDiscoverer, NodeDiscoveryError,
-    RubyDiscoverer, RubyDiscoveryError,
+    PythonDiscoverer, PythonDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -23,6 +23,7 @@ pub enum Framework {
     Go,
     Composer,
     Ruby,
+    Python,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -37,6 +38,8 @@ pub enum DiscoveryError {
     Composer(#[from] ComposerDiscoveryError),
     #[error(transparent)]
     Ruby(#[from] RubyDiscoveryError),
+    #[error(transparent)]
+    Python(#[from] PythonDiscoveryError),
 }
 
 pub trait Discoverer {
@@ -59,6 +62,14 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     }
     if project_root.join("Gemfile").exists() || project_root.join("Gemfile.lock").exists() {
         frameworks.push(Framework::Ruby);
+    }
+    if project_root.join("pyproject.toml").exists()
+        || project_root.join("requirements.txt").exists()
+        || project_root.join("Pipfile").exists()
+        || project_root.join("Pipfile.lock").exists()
+        || project_root.join("uv.lock").exists()
+    {
+        frameworks.push(Framework::Python);
     }
     frameworks
 }
@@ -92,6 +103,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Ruby => {
                             let discoverer = RubyDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Python => {
+                            let discoverer = PythonDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };

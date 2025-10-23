@@ -14,13 +14,14 @@ https://github.com/user-attachments/assets/d7a7b047-312e-4d56-ba5d-25ed6eb2e5ce
 
 The following ecosystems are currently detected when you run the tool:
 
-| Ecosystem       | Detection Source                  | Implementation                                             |
-| --------------- | --------------------------------- | ---------------------------------------------------------- |
-| Cargo (Rust)    | `Cargo.toml`                      | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
-| Node.js         | `package.json`                    | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
-| Go (Go Modules) | `go.mod`                          | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
-| Composer (PHP)  | `composer.lock` / `composer.json` | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
-| Ruby (Bundler)  | `Gemfile` / `Gemfile.lock`        | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
+| Ecosystem       | Detection Source                                                               | Implementation                                             |
+| --------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Cargo (Rust)    | `Cargo.toml`                                                                   | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
+| Node.js         | `package.json`                                                                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
+| Go (Go Modules) | `go.mod`                                                                       | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
+| Composer (PHP)  | `composer.lock` / `composer.json`                                              | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
+| Ruby (Bundler)  | `Gemfile` / `Gemfile.lock`                                                     | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
+| Python          | `pyproject.toml` / `requirements.txt` / `Pipfile` / `Pipfile.lock` / `uv.lock` | [`src/ecosystems/python.rs`](src/ecosystems/python.rs)     |
 
 Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
 
