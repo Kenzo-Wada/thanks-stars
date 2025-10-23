@@ -131,7 +131,11 @@ else
 fi
 
 if $tag_present; then
-  changes=$(git-cliff --config cliff.toml --tag "$tag" --strip footer || true)
+  if [[ -n "$prev_tag" ]]; then
+    changes=$(git-cliff --config cliff.toml --range "${prev_tag}..${tag}" --strip footer || true)
+  else
+    changes=$(git-cliff --config cliff.toml --tag "$tag" --strip footer || true)
+  fi
 else
   changes=$(git-cliff --config cliff.toml --strip footer || true)
 fi
