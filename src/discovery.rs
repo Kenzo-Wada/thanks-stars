@@ -3,10 +3,7 @@ use std::thread;
 
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
-    ComposerDiscoveryError, DenoDiscoverer, DenoDiscoveryError, GoDiscoverer, GoDiscoveryError,
-    GradleDiscoverer, GradleDiscoveryError, JsrDiscoverer, JsrDiscoveryError, NodeDiscoverer,
-    NodeDiscoveryError, PythonDiscoveryError, PythonPipDiscoverer, PythonUvDiscoverer,
-    RubyDiscoverer, RubyDiscoveryError,
+    ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, NodeDiscoverer, NodeDiscoveryError,
 };
 use url::Url;
 
@@ -23,12 +20,6 @@ pub enum Framework {
     Node,
     Cargo,
     Go,
-    PythonUv,
-    PythonPip,
-    Deno,
-    Jsr,
-    Gradle,
-    Ruby,
     Composer,
 }
 
@@ -40,16 +31,6 @@ pub enum DiscoveryError {
     Cargo(#[from] CargoDiscoveryError),
     #[error(transparent)]
     Go(#[from] GoDiscoveryError),
-    #[error(transparent)]
-    Python(#[from] PythonDiscoveryError),
-    #[error(transparent)]
-    Deno(#[from] DenoDiscoveryError),
-    #[error(transparent)]
-    Jsr(#[from] JsrDiscoveryError),
-    #[error(transparent)]
-    Gradle(#[from] GradleDiscoveryError),
-    #[error(transparent)]
-    Ruby(#[from] RubyDiscoveryError),
     #[error(transparent)]
     Composer(#[from] ComposerDiscoveryError),
 }
@@ -68,35 +49,6 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     }
     if project_root.join("go.mod").exists() {
         frameworks.push(Framework::Go);
-    }
-    if project_root.join("uv.lock").exists() {
-        frameworks.push(Framework::PythonUv);
-    }
-    if project_root.join("requirements.txt").exists() {
-        frameworks.push(Framework::PythonPip);
-    }
-    if project_root.join("deno.json").exists()
-        || project_root.join("deno.jsonc").exists()
-        || project_root.join("deno.lock").exists()
-    {
-        frameworks.push(Framework::Deno);
-    }
-    if project_root.join("jsr.json").exists() {
-        frameworks.push(Framework::Jsr);
-    }
-    if project_root.join("gradle.lockfile").exists()
-        || project_root.join("build.gradle").exists()
-        || project_root.join("build.gradle.kts").exists()
-        || project_root.join("settings.gradle").exists()
-        || project_root.join("settings.gradle.kts").exists()
-    {
-        frameworks.push(Framework::Gradle);
-    }
-    if project_root.join("Gemfile").exists()
-        || project_root.join("Gemfile.lock").exists()
-        || project_root.join("gems.rb").exists()
-    {
-        frameworks.push(Framework::Ruby);
     }
     if project_root.join("composer.lock").exists() || project_root.join("composer.json").exists() {
         frameworks.push(Framework::Composer);
@@ -125,30 +77,6 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Go => {
                             let discoverer = GoDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::PythonUv => {
-                            let discoverer = PythonUvDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::PythonPip => {
-                            let discoverer = PythonPipDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Deno => {
-                            let discoverer = DenoDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Jsr => {
-                            let discoverer = JsrDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Gradle => {
-                            let discoverer = GradleDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Ruby => {
-                            let discoverer = RubyDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                         Framework::Composer => {

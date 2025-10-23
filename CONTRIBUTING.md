@@ -27,12 +27,7 @@ When extending ecosystem support, update the corresponding modules and fixtures 
 | --- | --- | --- |
 | Cargo (Rust) | Parses `Cargo.lock` and `Cargo.toml` | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs) |
 | Node.js (npm, Yarn, pnpm) | Reads `package.json` and lockfiles | [`src/ecosystems/node.rs`](src/ecosystems/node.rs) |
-| Gradle | Scans `build.gradle[.kts]` files | [`src/ecosystems/gradle.rs`](src/ecosystems/gradle.rs) |
 | Go (Go Modules) | Consumes `go.mod` files | [`src/ecosystems/go.rs`](src/ecosystems/go.rs) |
-| Python (pip, uv) | Parses `requirements.txt` / `uv.lock` | [`src/ecosystems/python.rs`](src/ecosystems/python.rs) |
-| Ruby (Bundler) | Reads `Gemfile.lock` | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs) |
-| Deno | Loads `deno.json` / `deno.jsonc` manifests | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs) |
-| JSR | Handles `jsr.json` manifests | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs) |
 
 ## 🛠 Development Workflow
 Use the `just` recipes to keep formatting and linting consistent:

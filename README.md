@@ -16,13 +16,8 @@ The following ecosystems are currently detected when you run the tool:
 | -------------------- | ----------------------------------- | ---------------------------------------------------------- |
 | Cargo (Rust)         | `Cargo.lock` / `Cargo.toml`         | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
 | Node.js              | `package.json` with                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
-| Gradle (Java/Kotlin) | `build.gradle` / `build.gradle.kts` | [`src/ecosystems/gradle.rs`](src/ecosystems/gradle.rs)     |
 | Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
-| Python (pip, uv)     | `requirements.txt` / `uv.lock`      | [`src/ecosystems/python.rs`](src/ecosystems/python.rs)     |
-| Ruby (Bundler)       | `Gemfile.lock`                      | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
 | Composer (PHP)       | `composer.lock` / `composer.json`   | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
-| Deno                 | `deno.json` / `deno.jsonc`          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)         |
-| JSR                  | `jsr.json`                          | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)           |
 
 Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
 
