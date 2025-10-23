@@ -59,6 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
           submodules: recursive
       - name: Install dist
         # we specify bash to get pipefail; it guards against the `curl` command
@@ -119,6 +120,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
           submodules: recursive
       - name: Install Rust non-interactively if not already installed
         if: ${{ matrix.container }}
@@ -178,6 +180,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
           submodules: recursive
       - name: Install cached dist
         uses: actions/download-artifact@v4
@@ -228,6 +231,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
           submodules: recursive
       - name: Install cached dist
         uses: actions/download-artifact@v4
@@ -395,4 +399,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
           submodules: recursive

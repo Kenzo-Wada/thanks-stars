@@ -4,6 +4,7 @@ use std::thread;
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
     ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, NodeDiscoverer, NodeDiscoveryError,
+    RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -21,6 +22,7 @@ pub enum Framework {
     Cargo,
     Go,
     Composer,
+    Ruby,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +35,8 @@ pub enum DiscoveryError {
     Go(#[from] GoDiscoveryError),
     #[error(transparent)]
     Composer(#[from] ComposerDiscoveryError),
+    #[error(transparent)]
+    Ruby(#[from] RubyDiscoveryError),
 }
 
 pub trait Discoverer {
@@ -52,6 +56,9 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     }
     if project_root.join("composer.lock").exists() || project_root.join("composer.json").exists() {
         frameworks.push(Framework::Composer);
+    }
+    if project_root.join("Gemfile").exists() || project_root.join("Gemfile.lock").exists() {
+        frameworks.push(Framework::Ruby);
     }
     frameworks
 }
@@ -81,6 +88,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Composer => {
                             let discoverer = ComposerDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Ruby => {
+                            let discoverer = RubyDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };
