@@ -69,7 +69,7 @@ fn run_command_stars_dependencies() {
             "⭐ Starred https://github.com/example/dep via package.json",
         ))
         .stdout(predicate::str::contains(
-            "✨ Completed! Starred 1 repository.",
+            "✨ Completed! ⭐ Starred 1 repository.",
         ));
 
     mock.assert();
@@ -123,7 +123,7 @@ fn run_command_dry_run_skips_starring() {
             "⭐ Would star https://github.com/example/dep via package.json",
         ))
         .stdout(predicate::str::contains(
-            "✨ Dry run complete! 1 repository would be starred.",
+            "✨ Dry run complete! ⭐ 1 repository would be starred.",
         ));
 
     assert_eq!(mock.calls(), 0);
@@ -176,7 +176,7 @@ fn default_command_accepts_dry_run_flag() {
             "⭐ Would star https://github.com/example/dep via package.json",
         ))
         .stdout(predicate::str::contains(
-            "✨ Dry run complete! 1 repository would be starred.",
+            "✨ Dry run complete! ⭐ 1 repository would be starred.",
         ));
 
     assert_eq!(mock.calls(), 0);
@@ -225,10 +225,10 @@ fn run_command_reports_already_starred() {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(
-            "⭐ Already starred https://github.com/example/dep (already starred) via package.json",
+            "✅ Already starred https://github.com/example/dep (already starred) via package.json",
         ))
         .stdout(predicate::str::contains(
-            "✨ Completed! All 1 repository were already starred.",
+            "✨ Completed! ✅ All 1 repository were already starred.",
         ));
 
     star_mock.assert_calls(0);

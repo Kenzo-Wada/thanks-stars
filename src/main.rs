@@ -132,7 +132,7 @@ impl CliRunHandler {
 
     fn message_prefix(&self, already_starred: bool) -> &'static str {
         if already_starred {
-            "⭐ Already starred"
+            "✅ Already starred"
         } else if self.dry_run {
             "⭐ Would star"
         } else {
@@ -272,17 +272,17 @@ impl RunEventHandler for CliRunHandler {
                 };
                 let detail = if newly_starred_count > 0 && already_starred_count > 0 {
                     format!(
-                        "{newly_starred_count} {new_plural} would be starred, {already_starred_count} already starred.",
+                        "⭐ {newly_starred_count} {new_plural} would be starred, ✅ {already_starred_count} already starred.",
                         new_plural = pluralize(newly_starred_count)
                     )
                 } else if newly_starred_count > 0 {
                     format!(
-                        "{newly_starred_count} {new_plural} would be starred.",
+                        "⭐ {newly_starred_count} {new_plural} would be starred.",
                         new_plural = pluralize(newly_starred_count)
                     )
                 } else {
                     format!(
-                        "All {already_starred_count} {already_plural} are already starred.",
+                        "✅ All {already_starred_count} {already_plural} are already starred.",
                         already_plural = pluralize(already_starred_count)
                     )
                 };
@@ -300,17 +300,17 @@ impl RunEventHandler for CliRunHandler {
                 };
                 let detail = if newly_starred_count > 0 && already_starred_count > 0 {
                     format!(
-                        "Starred {newly_starred_count} {new_plural}, {already_starred_count} already starred.",
+                        "⭐ Starred {newly_starred_count} {new_plural}, ✅ {already_starred_count} already starred.",
                         new_plural = pluralize(newly_starred_count)
                     )
                 } else if newly_starred_count > 0 {
                     format!(
-                        "Starred {newly_starred_count} {new_plural}.",
+                        "⭐ Starred {newly_starred_count} {new_plural}.",
                         new_plural = pluralize(newly_starred_count)
                     )
                 } else {
                     format!(
-                        "All {already_starred_count} {already_plural} were already starred.",
+                        "✅ All {already_starred_count} {already_plural} were already starred.",
                         already_plural = pluralize(already_starred_count)
                     )
                 };

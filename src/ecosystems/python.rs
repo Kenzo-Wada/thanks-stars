@@ -437,9 +437,7 @@ fn collect_uv_lock_dependencies(
 }
 
 fn add_dependency(map: &mut DependencyMap, name: String, via: &str) {
-    map.entry(name)
-        .or_insert_with(BTreeSet::new)
-        .insert(via.to_string());
+    map.entry(name).or_default().insert(via.to_string());
 }
 
 fn add_named_dependency(map: &mut DependencyMap, name: &str, via: &str) {

@@ -86,9 +86,9 @@ Example output:
 ```
 $ thanks-stars
 ⭐ Starred https://github.com/xxx/xxx via Cargo.toml
-⭐ Starred https://github.com/xxx/xxx via package.json
+✅ Already starred https://github.com/xxx/xxx via package.json
 ...
-✨ Completed! Starred 10 repositories.
+✨ Completed! ⭐ Starred 10 repositories.
 ```
 
 Run `thanks-stars --help` to explore all available options.
@@ -101,8 +101,8 @@ changes to your GitHub account, pass the `--dry-run` flag:
 ```
 $ thanks-stars --dry-run
 ⭐ Would star https://github.com/xxx/xxx via Cargo.toml
-⭐ Already starred https://github.com/xxx/yyy via package.json
-✨ Dry run complete! 1 repository would be starred, 1 already starred.
+✅ Already starred https://github.com/xxx/yyy via package.json
+✨ Dry run complete! ⭐ 1 repository would be starred, ✅ 1 already starred.
 ```
 
 The command still inspects your dependencies so it can report which ones are
