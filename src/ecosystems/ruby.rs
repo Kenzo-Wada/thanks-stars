@@ -36,6 +36,12 @@ pub struct HttpRubyGemsClient {
     base_url: String,
 }
 
+impl Default for HttpRubyGemsClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HttpRubyGemsClient {
     const DEFAULT_BASE_URL: &'static str = "https://rubygems.org/api/v1/gems";
 
@@ -82,6 +88,12 @@ pub enum RubyGemsError {
 
 pub struct RubyDiscoverer<F: RubyGemsFetcher> {
     fetcher: F,
+}
+
+impl Default for RubyDiscoverer<HttpRubyGemsClient> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RubyDiscoverer<HttpRubyGemsClient> {
@@ -162,7 +174,7 @@ fn read_gemfile_lock(project_root: &Path) -> Result<Vec<String>, RubyDiscoveryEr
             if !line.starts_with(' ') && !line.starts_with('\t') {
                 break;
             }
-            if let Some(name) = line.trim().split_whitespace().next() {
+            if let Some(name) = line.split_whitespace().next() {
                 if let Some(normalized) = normalize_dependency_name(name) {
                     names.push(normalized);
                 }
