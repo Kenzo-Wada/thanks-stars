@@ -57,9 +57,6 @@ impl HttpRubyGemsClient {
 
 impl RubyGemsFetcher for HttpRubyGemsClient {
     fn fetch(&self, name: &str) -> Result<Option<RubyGem>, RubyGemsError> {
-        if name.trim().is_empty() {
-            return Ok(None);
-        }
         let url = format!("{}/{name}.json", self.base_url.trim_end_matches('/'));
         let response = self
             .client
