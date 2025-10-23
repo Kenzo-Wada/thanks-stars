@@ -1,5 +1,6 @@
 use reqwest::blocking::Client;
 use reqwest::header::{ACCEPT, AUTHORIZATION, USER_AGENT};
+use serde::Deserialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GitHubError {
@@ -10,6 +11,7 @@ pub enum GitHubError {
 }
 
 pub trait GitHubApi {
+    fn viewer_has_starred(&self, owner: &str, repo: &str) -> Result<bool, GitHubError>;
     fn star(&self, owner: &str, repo: &str) -> Result<(), GitHubError>;
 }
 
@@ -44,6 +46,62 @@ impl GitHubClient {
 }
 
 impl GitHubApi for GitHubClient {
+    fn viewer_has_starred(&self, owner: &str, repo: &str) -> Result<bool, GitHubError> {
+        let url = format!("{}/graphql", self.base_url);
+        let query = serde_json::json!({
+            "query": "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){viewerHasStarred}}",
+            "variables": {"owner": owner, "name": repo}
+        });
+
+        let response = self
+            .client
+            .post(url)
+            .header(USER_AGENT, "thanks-stars")
+            .header(ACCEPT, "application/vnd.github+json")
+            .header(AUTHORIZATION, self.auth_header())
+            .json(&query)
+            .send()
+            .map_err(GitHubError::from)?;
+
+        let status = response.status();
+        let body = response.text().unwrap_or_default();
+
+        if !status.is_success() {
+            return Err(GitHubError::Api {
+                status: status.as_u16(),
+                body,
+            });
+        }
+
+        let parsed: GraphqlResponse =
+            serde_json::from_str(&body).map_err(|err| GitHubError::Api {
+                status: status.as_u16(),
+                body: format!("failed to parse GraphQL response: {err}; body: {body}"),
+            })?;
+
+        if let Some(errors) = parsed.errors {
+            let message = errors
+                .into_iter()
+                .map(|error| error.message)
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(GitHubError::Api {
+                status: status.as_u16(),
+                body: message,
+            });
+        }
+
+        let repo_data = parsed
+            .data
+            .and_then(|data| data.repository)
+            .ok_or_else(|| GitHubError::Api {
+                status: status.as_u16(),
+                body: "repository data missing from GraphQL response".to_string(),
+            })?;
+
+        Ok(repo_data.viewer_has_starred)
+    }
+
     fn star(&self, owner: &str, repo: &str) -> Result<(), GitHubError> {
         let url = format!("{}/user/starred/{}/{}", self.base_url, owner, repo);
         let response = self
@@ -63,4 +121,26 @@ impl GitHubApi for GitHubClient {
         let body = response.text().unwrap_or_default();
         Err(GitHubError::Api { status, body })
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlResponse {
+    data: Option<GraphqlData>,
+    errors: Option<Vec<GraphqlErrorMessage>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlData {
+    repository: Option<GraphqlRepository>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlRepository {
+    #[serde(rename = "viewerHasStarred")]
+    viewer_has_starred: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlErrorMessage {
+    message: String,
 }

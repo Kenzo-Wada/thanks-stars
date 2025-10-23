@@ -14,13 +14,13 @@ https://github.com/user-attachments/assets/d7a7b047-312e-4d56-ba5d-25ed6eb2e5ce
 
 The following ecosystems are currently detected when you run the tool:
 
-| Ecosystem            | Detection Source                    | Implementation                                             |
-| -------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| Cargo (Rust)         | `Cargo.toml`                        | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
-| Node.js              | `package.json`                      | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
-| Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
-| Composer (PHP)       | `composer.lock` / `composer.json`   | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
-| Ruby (Bundler)       | `Gemfile` / `Gemfile.lock`          | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
+| Ecosystem       | Detection Source                  | Implementation                                             |
+| --------------- | --------------------------------- | ---------------------------------------------------------- |
+| Cargo (Rust)    | `Cargo.toml`                      | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
+| Node.js         | `package.json`                    | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
+| Go (Go Modules) | `go.mod`                          | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
+| Composer (PHP)  | `composer.lock` / `composer.json` | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
+| Ruby (Bundler)  | `Gemfile` / `Gemfile.lock`        | [`src/ecosystems/ruby.rs`](src/ecosystems/ruby.rs)         |
 
 Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
 
@@ -76,6 +76,7 @@ If you omit `--token`, the command will prompt you to paste it securely. By defa
 ### Run inside your project
 
 ```bash
+$ cd path/to/your/project
 $ thanks-stars
 ```
 
@@ -90,6 +91,22 @@ $ thanks-stars
 ```
 
 Run `thanks-stars --help` to explore all available options.
+
+#### Preview your run with `--dry-run`
+
+If you want to see which repositories would be starred without making any
+changes to your GitHub account, pass the `--dry-run` flag:
+
+```
+$ thanks-stars --dry-run
+⭐ Would star https://github.com/xxx/xxx via Cargo.toml
+⭐ Already starred https://github.com/xxx/yyy via package.json
+✨ Dry run complete! 1 repository would be starred, 1 already starred.
+```
+
+The command still inspects your dependencies so it can report which ones are
+already starred, but it avoids sending any API requests that would change your
+starred repositories.
 
 ---
 

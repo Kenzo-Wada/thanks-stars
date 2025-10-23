@@ -10,7 +10,7 @@ use supports_color::Stream as ColorStream;
 
 use thanks_stars::config::{ConfigError, ConfigManager};
 use thanks_stars::discovery::Repository;
-use thanks_stars::github::{GitHubClient, GitHubError};
+use thanks_stars::github::{GitHubApi, GitHubClient, GitHubError};
 use thanks_stars::{run_with_handler, RunError, RunEventHandler, RunSummary};
 
 #[derive(Parser)]
@@ -20,6 +20,8 @@ use thanks_stars::{run_with_handler, RunError, RunEventHandler, RunSummary};
     about = "Star the GitHub repositories of your dependencies."
 )]
 struct Cli {
+    #[command(flatten)]
+    run: RunArgs,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -39,20 +41,24 @@ struct AuthArgs {
     token: Option<String>,
 }
 
-#[derive(Args, Default)]
+#[derive(Args, Default, Clone)]
 struct RunArgs {
     /// Path to the project root. Defaults to the current directory.
     #[arg(short, long)]
     path: Option<PathBuf>,
+    /// Simulate starring repositories without issuing star requests to GitHub.
+    #[arg(long = "dry-run")]
+    dry_run: bool,
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let Cli { run, command } = Cli::parse();
     let config = ConfigManager::new()?;
 
-    match cli.command.unwrap_or(Commands::Run(RunArgs::default())) {
-        Commands::Auth(args) => handle_auth(args, &config),
-        Commands::Run(args) => handle_run(args, &config),
+    match command {
+        Some(Commands::Auth(args)) => handle_auth(args, &config),
+        Some(Commands::Run(args)) => handle_run(args, &config),
+        None => handle_run(run, &config),
     }
 }
 
@@ -77,8 +83,9 @@ fn handle_run(args: RunArgs, config: &ConfigManager) -> Result<()> {
     let token = load_token(config)?;
     let client = create_client(token).context("failed to initialize GitHub client")?;
 
-    let mut handler = CliRunHandler::default();
-    run_with_handler(&root, &client, &mut handler).map_err(|err| match err {
+    let mut handler = CliRunHandler::new(args.dry_run);
+    let adapter = MaybeDryRunClient::new(&client, args.dry_run);
+    run_with_handler(&root, &adapter, &mut handler).map_err(|err| match err {
         RunError::NoFrameworks(path) => {
             anyhow!("no supported dependency definitions found in {path}")
         }
@@ -110,12 +117,29 @@ fn prompt_for_token() -> Result<String> {
     Ok(token)
 }
 
-#[derive(Default)]
 struct CliRunHandler {
     progress: Option<ProgressBar>,
+    dry_run: bool,
 }
 
 impl CliRunHandler {
+    fn new(dry_run: bool) -> Self {
+        Self {
+            progress: None,
+            dry_run,
+        }
+    }
+
+    fn message_prefix(&self, already_starred: bool) -> &'static str {
+        if already_starred {
+            "⭐ Already starred"
+        } else if self.dry_run {
+            "⭐ Would star"
+        } else {
+            "⭐ Starred"
+        }
+    }
+
     fn create_progress(total: usize) -> ProgressBar {
         let pb = ProgressBar::with_draw_target(Some(total as u64), ProgressDrawTarget::stdout());
         pb.set_style(
@@ -148,16 +172,33 @@ impl RunEventHandler for CliRunHandler {
             return;
         }
         let pb = Self::create_progress(total);
-        pb.set_message("Preparing to star repositories...");
+        if self.dry_run {
+            pb.set_message("Dry run: evaluating repositories...");
+        } else {
+            pb.set_message("Preparing to star repositories...");
+        }
         self.progress = Some(pb);
     }
 
-    fn on_starred(&mut self, repo: &Repository, _index: usize, _total: usize) {
+    fn on_starred(
+        &mut self,
+        repo: &Repository,
+        already_starred: bool,
+        _index: usize,
+        _total: usize,
+    ) {
         let use_color = Self::color_enabled();
+        let prefix = self.message_prefix(already_starred);
         let label = if use_color {
-            format!("{}", "⭐ Starred".green().bold())
+            if already_starred {
+                format!("{}", prefix.blue().bold())
+            } else if self.dry_run {
+                format!("{}", prefix.yellow().bold())
+            } else {
+                format!("{}", prefix.green().bold())
+            }
         } else {
-            "⭐ Starred".to_string()
+            prefix.to_string()
         };
         let repo_url_source = repo.url.clone();
         let repo_url = if use_color {
@@ -173,17 +214,23 @@ impl RunEventHandler for CliRunHandler {
             format!(" via {via_label_raw}")
         };
 
+        let status_suffix = if already_starred {
+            " (already starred)"
+        } else {
+            ""
+        };
+
         if let Some(pb) = &self.progress {
-            pb.set_message(format!("{}{}", repo.url, via_text));
+            pb.set_message(format!("{}{}{}", repo.url, status_suffix, via_text));
             pb.inc(1);
-            let line = format!("{label} {repo_url}{via_text}");
+            let line = format!("{label} {repo_url}{status_suffix}{via_text}");
             if pb.is_hidden() {
                 println!("{line}");
             } else {
                 pb.println(line);
             }
         } else {
-            println!("{label} {repo_url}{via_text}");
+            println!("{label} {repo_url}{status_suffix}{via_text}");
         }
     }
 
@@ -194,6 +241,13 @@ impl RunEventHandler for CliRunHandler {
 
         let use_color = Self::color_enabled();
 
+        let already_starred_count = summary
+            .starred
+            .iter()
+            .filter(|repo| repo.already_starred)
+            .count();
+        let newly_starred_count = summary.starred.len().saturating_sub(already_starred_count);
+
         if summary.starred.is_empty() {
             let msg = if use_color {
                 format!("{}", "🌱 No repositories required starring today.".yellow())
@@ -202,18 +256,96 @@ impl RunEventHandler for CliRunHandler {
             };
             println!("{msg}");
         } else {
-            let done = if use_color {
-                format!("{}", "✨ Completed!".green().bold())
-            } else {
-                "✨ Completed!".to_string()
+            let pluralize = |count: usize| {
+                if count == 1 {
+                    "repository"
+                } else {
+                    "repositories"
+                }
             };
-            let total_message = format!("Starred {} repositories.", summary.starred.len());
-            let total = if use_color {
-                format!("{}", total_message.clone().white().bold())
+
+            if self.dry_run {
+                let done = if use_color {
+                    format!("{}", "✨ Dry run complete!".yellow().bold())
+                } else {
+                    "✨ Dry run complete!".to_string()
+                };
+                let detail = if newly_starred_count > 0 && already_starred_count > 0 {
+                    format!(
+                        "{newly_starred_count} {new_plural} would be starred, {already_starred_count} already starred.",
+                        new_plural = pluralize(newly_starred_count)
+                    )
+                } else if newly_starred_count > 0 {
+                    format!(
+                        "{newly_starred_count} {new_plural} would be starred.",
+                        new_plural = pluralize(newly_starred_count)
+                    )
+                } else {
+                    format!(
+                        "All {already_starred_count} {already_plural} are already starred.",
+                        already_plural = pluralize(already_starred_count)
+                    )
+                };
+                let detail = if use_color {
+                    format!("{}", detail.clone().white().bold())
+                } else {
+                    detail
+                };
+                println!("{done} {detail}");
             } else {
-                total_message
-            };
-            println!("{done} {total}");
+                let done = if use_color {
+                    format!("{}", "✨ Completed!".green().bold())
+                } else {
+                    "✨ Completed!".to_string()
+                };
+                let detail = if newly_starred_count > 0 && already_starred_count > 0 {
+                    format!(
+                        "Starred {newly_starred_count} {new_plural}, {already_starred_count} already starred.",
+                        new_plural = pluralize(newly_starred_count)
+                    )
+                } else if newly_starred_count > 0 {
+                    format!(
+                        "Starred {newly_starred_count} {new_plural}.",
+                        new_plural = pluralize(newly_starred_count)
+                    )
+                } else {
+                    format!(
+                        "All {already_starred_count} {already_plural} were already starred.",
+                        already_plural = pluralize(already_starred_count)
+                    )
+                };
+                let detail = if use_color {
+                    format!("{}", detail.clone().white().bold())
+                } else {
+                    detail
+                };
+                println!("{done} {detail}");
+            }
+        }
+    }
+}
+
+struct MaybeDryRunClient<'a, T: GitHubApi> {
+    inner: &'a T,
+    dry_run: bool,
+}
+
+impl<'a, T: GitHubApi> MaybeDryRunClient<'a, T> {
+    fn new(inner: &'a T, dry_run: bool) -> Self {
+        Self { inner, dry_run }
+    }
+}
+
+impl<'a, T: GitHubApi> GitHubApi for MaybeDryRunClient<'a, T> {
+    fn viewer_has_starred(&self, owner: &str, repo: &str) -> Result<bool, GitHubError> {
+        self.inner.viewer_has_starred(owner, repo)
+    }
+
+    fn star(&self, owner: &str, repo: &str) -> Result<(), GitHubError> {
+        if self.dry_run {
+            Ok(())
+        } else {
+            self.inner.star(owner, repo)
         }
     }
 }

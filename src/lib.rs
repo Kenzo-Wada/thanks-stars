@@ -19,14 +19,27 @@ pub enum RunError {
     NoFrameworks(String),
 }
 
+#[derive(Debug, Clone)]
+pub struct StarredRepository {
+    pub repository: Repository,
+    pub already_starred: bool,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RunSummary {
-    pub starred: Vec<Repository>,
+    pub starred: Vec<StarredRepository>,
 }
 
 pub trait RunEventHandler {
     fn on_start(&mut self, _total: usize) {}
-    fn on_starred(&mut self, _repo: &Repository, _index: usize, _total: usize) {}
+    fn on_starred(
+        &mut self,
+        _repo: &Repository,
+        _already_starred: bool,
+        _index: usize,
+        _total: usize,
+    ) {
+    }
     fn on_complete(&mut self, _summary: &RunSummary) {}
 }
 
@@ -89,9 +102,15 @@ pub fn run_with_frameworks_and_handler(
     let total = unique.len();
     let mut starred = Vec::new();
     for (index, repo) in unique.into_iter().enumerate() {
-        api.star(&repo.owner, &repo.name)?;
-        handler.on_starred(&repo, index + 1, total);
-        starred.push(repo);
+        let already_starred = api.viewer_has_starred(&repo.owner, &repo.name)?;
+        if !already_starred {
+            api.star(&repo.owner, &repo.name)?;
+        }
+        handler.on_starred(&repo, already_starred, index + 1, total);
+        starred.push(StarredRepository {
+            repository: repo,
+            already_starred,
+        });
     }
 
     let summary = RunSummary { starred };
@@ -112,19 +131,32 @@ mod tests {
 
     struct MockGitHub {
         calls: RefCell<Vec<(String, String)>>,
+        starred: RefCell<Vec<(String, String)>>,
     }
 
     impl MockGitHub {
         fn new() -> Self {
             Self {
                 calls: RefCell::new(Vec::new()),
+                starred: RefCell::new(Vec::new()),
             }
         }
     }
 
     impl GitHubApi for MockGitHub {
+        fn viewer_has_starred(&self, owner: &str, repo: &str) -> Result<bool, GitHubError> {
+            Ok(self
+                .starred
+                .borrow()
+                .iter()
+                .any(|(o, r)| o == owner && r == repo))
+        }
+
         fn star(&self, owner: &str, repo: &str) -> Result<(), GitHubError> {
             self.calls
+                .borrow_mut()
+                .push((owner.to_string(), repo.to_string()));
+            self.starred
                 .borrow_mut()
                 .push((owner.to_string(), repo.to_string()));
             Ok(())
@@ -159,8 +191,9 @@ mod tests {
         let summary = run_with_frameworks(dir.path(), &[Framework::Node], &mock).unwrap();
 
         assert_eq!(summary.starred.len(), 1);
-        assert_eq!(summary.starred[0].owner, "example");
-        assert_eq!(summary.starred[0].name, "repo");
+        assert_eq!(summary.starred[0].repository.owner, "example");
+        assert_eq!(summary.starred[0].repository.name, "repo");
+        assert!(!summary.starred[0].already_starred);
         let calls = mock.calls.borrow();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0], ("example".to_string(), "repo".to_string()));
