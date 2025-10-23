@@ -16,8 +16,8 @@ The following ecosystems are currently detected when you run the tool:
 
 | Ecosystem            | Detection Source                    | Implementation                                             |
 | -------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| Cargo (Rust)         | `Cargo.lock` / `Cargo.toml`         | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
-| Node.js              | `package.json` with                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
+| Cargo (Rust)         | `Cargo.toml`         | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
+| Node.js              | `package.json`                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
 | Go (Go Modules)      | `go.mod`                            | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
 | Composer (PHP)       | `composer.lock` / `composer.json`   | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |
 
