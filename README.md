@@ -2,6 +2,8 @@
 
 Thanks Stars is a command-line companion that stars the GitHub repositories powering your project so you can show appreciation to the maintainers of your dependencies. It draws inspiration from [teppeis/thank-you-stars](https://github.com/teppeis/thank-you-stars), but reimagines the experience in Rust with first-class support for multiple ecosystems.
 
+https://github.com/user-attachments/assets/d7a7b047-312e-4d56-ba5d-25ed6eb2e5ce
+
 ## ✨ Highlights
 
 - Detects dependencies across popular package managers and build tools.
