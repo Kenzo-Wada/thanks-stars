@@ -34,7 +34,7 @@ indicatif = "0.18"
 owo-colors = { version = "4", features = ["supports-colors"] }
 supports-color = "3.0"
 regex = "1"
-quick-xml = "0.31"
+quick-xml = "0.38.3"
 
 [dev-dependencies]
 assert_cmd = "2"

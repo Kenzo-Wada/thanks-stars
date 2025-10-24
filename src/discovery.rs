@@ -31,26 +31,38 @@ pub enum Framework {
 #[derive(Debug, thiserror::Error)]
 pub enum DiscoveryError {
     #[error(transparent)]
-    Node(#[from] NodeDiscoveryError),
+    Node(Box<NodeDiscoveryError>),
     #[error(transparent)]
-    Cargo(#[from] CargoDiscoveryError),
+    Cargo(Box<CargoDiscoveryError>),
     #[error(transparent)]
-    Go(#[from] GoDiscoveryError),
+    Go(Box<GoDiscoveryError>),
     #[error(transparent)]
-    Composer(#[from] ComposerDiscoveryError),
+    Composer(Box<ComposerDiscoveryError>),
     #[error(transparent)]
-    Ruby(#[from] RubyDiscoveryError),
+    Ruby(Box<RubyDiscoveryError>),
     #[error(transparent)]
-    Python(#[from] PythonDiscoveryError),
+    Python(Box<PythonDiscoveryError>),
     #[error(transparent)]
     Gradle(Box<GradleDiscoveryError>),
 }
 
-impl From<GradleDiscoveryError> for DiscoveryError {
-    fn from(value: GradleDiscoveryError) -> Self {
-        Self::Gradle(Box::new(value))
-    }
+macro_rules! impl_from_discovery_error {
+    ($variant:ident, $ty:ty) => {
+        impl From<$ty> for DiscoveryError {
+            fn from(value: $ty) -> Self {
+                Self::$variant(Box::new(value))
+            }
+        }
+    };
 }
+
+impl_from_discovery_error!(Node, NodeDiscoveryError);
+impl_from_discovery_error!(Cargo, CargoDiscoveryError);
+impl_from_discovery_error!(Go, GoDiscoveryError);
+impl_from_discovery_error!(Composer, ComposerDiscoveryError);
+impl_from_discovery_error!(Ruby, RubyDiscoveryError);
+impl_from_discovery_error!(Python, PythonDiscoveryError);
+impl_from_discovery_error!(Gradle, GradleDiscoveryError);
 
 pub trait Discoverer {
     fn discover(&self, project_root: &Path) -> Result<Vec<Repository>, DiscoveryError>;

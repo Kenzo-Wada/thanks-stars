@@ -122,7 +122,7 @@ pub struct MavenProject {
 impl MavenProject {
     fn from_pom(pom: &str) -> Result<Self, MavenError> {
         let mut reader = Reader::from_str(pom);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut buf = Vec::new();
         let mut stack: Vec<String> = Vec::new();
@@ -133,7 +133,8 @@ impl MavenProject {
                 Event::Start(element) => {
                     let name = reader
                         .decoder()
-                        .decode(element.name().as_ref())?
+                        .decode(element.name().as_ref())
+                        .map_err(|err| MavenError::Xml { source: err.into() })?
                         .into_owned();
                     stack.push(name);
                 }
@@ -142,7 +143,10 @@ impl MavenProject {
                 }
                 Event::Text(text) => {
                     if let Some(current) = stack.last().map(|s| s.as_str()) {
-                        let value = text.unescape()?.into_owned();
+                        let value = text
+                            .decode()
+                            .map_err(|err| MavenError::Xml { source: err.into() })?
+                            .into_owned();
                         let trimmed = value.trim();
                         if trimmed.is_empty() {
                             continue;
