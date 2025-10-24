@@ -4,8 +4,8 @@ use std::thread;
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
     ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError,
-    NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RubyDiscoverer,
-    RubyDiscoveryError,
+    NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer,
+    RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -26,6 +26,7 @@ pub enum Framework {
     Ruby,
     Python,
     Gradle,
+    Renv,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,6 +45,8 @@ pub enum DiscoveryError {
     Python(Box<PythonDiscoveryError>),
     #[error(transparent)]
     Gradle(Box<GradleDiscoveryError>),
+    #[error(transparent)]
+    Renv(Box<RenvDiscoveryError>),
 }
 
 macro_rules! impl_from_discovery_error {
@@ -63,6 +66,7 @@ impl_from_discovery_error!(Composer, ComposerDiscoveryError);
 impl_from_discovery_error!(Ruby, RubyDiscoveryError);
 impl_from_discovery_error!(Python, PythonDiscoveryError);
 impl_from_discovery_error!(Gradle, GradleDiscoveryError);
+impl_from_discovery_error!(Renv, RenvDiscoveryError);
 
 pub trait Discoverer {
     fn discover(&self, project_root: &Path) -> Result<Vec<Repository>, DiscoveryError>;
@@ -98,6 +102,9 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
         || project_root.join("build.gradle.kts").exists()
     {
         frameworks.push(Framework::Gradle);
+    }
+    if project_root.join("renv.lock").exists() {
+        frameworks.push(Framework::Renv);
     }
     frameworks
 }
@@ -139,6 +146,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Gradle => {
                             let discoverer = GradleDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Renv => {
+                            let discoverer = RenvDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };
