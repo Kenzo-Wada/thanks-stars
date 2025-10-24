@@ -89,7 +89,7 @@ fn handle_run(args: RunArgs, config: &ConfigManager) -> Result<()> {
         RunError::NoFrameworks(path) => {
             anyhow!("no supported dependency definitions found in {path}")
         }
-        RunError::Discovery(inner) => anyhow!(inner),
+        RunError::Discovery(inner) => anyhow!(*inner),
         RunError::GitHub(inner) => anyhow!(inner),
     })?;
     Ok(())

@@ -12,11 +12,17 @@ use github::GitHubApi;
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
     #[error(transparent)]
-    Discovery(#[from] DiscoveryError),
+    Discovery(Box<DiscoveryError>),
     #[error(transparent)]
     GitHub(#[from] github::GitHubError),
     #[error("no supported package managers found in project root {0}")]
     NoFrameworks(String),
+}
+
+impl From<DiscoveryError> for RunError {
+    fn from(value: DiscoveryError) -> Self {
+        Self::Discovery(Box::new(value))
+    }
 }
 
 #[derive(Debug, Clone)]

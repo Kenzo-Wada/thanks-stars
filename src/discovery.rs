@@ -3,8 +3,9 @@ use std::thread;
 
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
-    ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, NodeDiscoverer, NodeDiscoveryError,
-    PythonDiscoverer, PythonDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
+    ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError,
+    NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RubyDiscoverer,
+    RubyDiscoveryError,
 };
 use url::Url;
 
@@ -24,6 +25,7 @@ pub enum Framework {
     Composer,
     Ruby,
     Python,
+    Gradle,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -40,6 +42,14 @@ pub enum DiscoveryError {
     Ruby(#[from] RubyDiscoveryError),
     #[error(transparent)]
     Python(#[from] PythonDiscoveryError),
+    #[error(transparent)]
+    Gradle(Box<GradleDiscoveryError>),
+}
+
+impl From<GradleDiscoveryError> for DiscoveryError {
+    fn from(value: GradleDiscoveryError) -> Self {
+        Self::Gradle(Box::new(value))
+    }
 }
 
 pub trait Discoverer {
@@ -70,6 +80,12 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
         || project_root.join("uv.lock").exists()
     {
         frameworks.push(Framework::Python);
+    }
+    if project_root.join("gradle.lockfile").exists()
+        || project_root.join("build.gradle").exists()
+        || project_root.join("build.gradle.kts").exists()
+    {
+        frameworks.push(Framework::Gradle);
     }
     frameworks
 }
@@ -107,6 +123,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Python => {
                             let discoverer = PythonDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Gradle => {
+                            let discoverer = GradleDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };
