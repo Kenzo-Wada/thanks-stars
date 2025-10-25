@@ -1,6 +1,6 @@
 {
   "name": "thanks-stars",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "CLI for starring the GitHub repositories behind your dependencies.",
   "packageManager": "pnpm@10.19.0",
   "bin": {
