@@ -49,6 +49,7 @@ $ cargo install thanks-stars
 
 ````bash
 $ npm install -g thanks-stars
+````
 
 ### 💻 Shell installer (macOS/Linux)
 
