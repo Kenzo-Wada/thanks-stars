@@ -1,0 +1,37 @@
+{
+  "name": "thanks-stars",
+  "version": "0.6.0",
+  "description": "CLI for starring the GitHub repositories behind your dependencies.",
+  "packageManager": "pnpm@10.19.0",
+  "bin": {
+    "thanks-stars": "bin/thanks-stars.js"
+  },
+  "files": [
+    "bin",
+    "npm",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "node npm/postinstall.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kenzo-Wada/thanks-stars.git"
+  },
+  "keywords": [
+    "github",
+    "cli",
+    "stars",
+    "thanks"
+  ],
+  "author": "Kenzo Wada",
+  "license": "MIT",
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "tar": "^6.2.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

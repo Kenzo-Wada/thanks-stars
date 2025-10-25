@@ -388,10 +388,11 @@ jobs:
       - host
       - publish-homebrew-formula
       - custom-publish-crates
+      - publish-npm-package
     # use "always() && ..." to allow us to wait for all publish jobs while
     # still allowing individual publish jobs to skip themselves (for prereleases).
     # "host" however must run to completion, no skipping allowed!
-    if: ${{ always() && needs.host.result == 'success' && (needs.publish-homebrew-formula.result == 'skipped' || needs.publish-homebrew-formula.result == 'success') && (needs.custom-publish-crates.result == 'skipped' || needs.custom-publish-crates.result == 'success') }}
+    if: ${{ always() && needs.host.result == 'success' && (needs.publish-homebrew-formula.result == 'skipped' || needs.publish-homebrew-formula.result == 'success') && (needs.custom-publish-crates.result == 'skipped' || needs.custom-publish-crates.result == 'success') && (needs.publish-npm-package.result == 'skipped' || needs.publish-npm-package.result == 'success') }}
     runs-on: "ubuntu-22.04"
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -401,3 +402,60 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
           submodules: recursive
+
+  publish-npm-package:
+    needs:
+      - plan
+      - host
+    if: ${{ needs.plan.outputs.publishing == 'true' && (!fromJson(needs.plan.outputs.val).announcement_is_prerelease || fromJson(needs.plan.outputs.val).publish_prereleases) }}
+    runs-on: "ubuntu-22.04"
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      PLAN: ${{ needs.plan.outputs.val }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: recursive
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      - name: Use pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+      - name: Verify npm package version matches release
+        run: |
+          set -euo pipefail
+          version_from_plan=$(echo "$PLAN" | jq -r '.releases[0].app_version')
+          if [ -z "$version_from_plan" ] || [ "$version_from_plan" = "null" ]; then
+            echo "Unable to determine release version from plan output" >&2
+            exit 1
+          fi
+
+          package_version=$(jq -r '.version' package.json)
+          if [ "$package_version" != "$version_from_plan" ]; then
+            echo "package.json version ($package_version) does not match release version ($version_from_plan)" >&2
+            exit 1
+          fi
+      - name: Ensure npm token is available
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN secret is not configured" >&2
+            exit 1
+          fi
+      - name: Configure pnpm authentication
+        run: |
+          set -euo pipefail
+          pnpm config set '//registry.npmjs.org/:_authToken' "$NODE_AUTH_TOKEN"
+      - name: Publish package to npm
+        run: |
+          set -euo pipefail
+          pnpm publish --access public --provenance

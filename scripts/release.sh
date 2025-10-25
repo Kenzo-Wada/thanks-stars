@@ -134,6 +134,37 @@ fi
 
 echo "Bumped $package to $version"
 
+#---------- Sync npm package version (if present) ----------
+pkg_json_path="$repo_root/package.json"
+if [[ -f "$pkg_json_path" ]]; then
+        if ! command -v node >/dev/null 2>&1; then
+                echo "Error: Node.js is required to update the npm package version." >&2
+                exit 1
+        fi
+
+        echo "Aligning npm package version to $version"
+        RELEASE_VERSION="$version" PACKAGE_JSON_PATH="$pkg_json_path" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+
+const pkgPath = process.env.PACKAGE_JSON_PATH || path.resolve(process.cwd(), 'package.json');
+const releaseVersion = process.env.RELEASE_VERSION;
+
+if (!releaseVersion) {
+  console.error('Error: RELEASE_VERSION env var is not set.');
+  process.exit(1);
+}
+
+const raw = fs.readFileSync(pkgPath, 'utf8');
+const pkg = JSON.parse(raw);
+
+pkg.version = releaseVersion;
+
+const formatted = JSON.stringify(pkg, null, 2) + '\n';
+fs.writeFileSync(pkgPath, formatted);
+NODE
+fi
+
 #---------- Sync Cargo.lock ----------
 # Keep lockfile pinned to the exact new version of the package (if present).
 # Fallback to generate-lockfile if update fails (e.g., in minimal setups).
