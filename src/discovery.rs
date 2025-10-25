@@ -3,9 +3,9 @@ use std::thread;
 
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
-    ComposerDiscoveryError, GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError,
-    NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer,
-    RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
+    ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, GoDiscoverer, GoDiscoveryError,
+    GradleDiscoverer, GradleDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer,
+    PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -22,6 +22,7 @@ pub enum Framework {
     Node,
     Cargo,
     Go,
+    Dart,
     Composer,
     Ruby,
     Python,
@@ -37,6 +38,8 @@ pub enum DiscoveryError {
     Cargo(Box<CargoDiscoveryError>),
     #[error(transparent)]
     Go(Box<GoDiscoveryError>),
+    #[error(transparent)]
+    Dart(Box<DartDiscoveryError>),
     #[error(transparent)]
     Composer(Box<ComposerDiscoveryError>),
     #[error(transparent)]
@@ -62,6 +65,7 @@ macro_rules! impl_from_discovery_error {
 impl_from_discovery_error!(Node, NodeDiscoveryError);
 impl_from_discovery_error!(Cargo, CargoDiscoveryError);
 impl_from_discovery_error!(Go, GoDiscoveryError);
+impl_from_discovery_error!(Dart, DartDiscoveryError);
 impl_from_discovery_error!(Composer, ComposerDiscoveryError);
 impl_from_discovery_error!(Ruby, RubyDiscoveryError);
 impl_from_discovery_error!(Python, PythonDiscoveryError);
@@ -82,6 +86,9 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     }
     if project_root.join("go.mod").exists() {
         frameworks.push(Framework::Go);
+    }
+    if project_root.join("pubspec.yaml").exists() {
+        frameworks.push(Framework::Dart);
     }
     if project_root.join("composer.lock").exists() || project_root.join("composer.json").exists() {
         frameworks.push(Framework::Composer);
@@ -130,6 +137,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Go => {
                             let discoverer = GoDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Dart => {
+                            let discoverer = DartDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                         Framework::Composer => {

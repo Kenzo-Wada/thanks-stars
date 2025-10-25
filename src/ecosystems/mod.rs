@@ -1,5 +1,6 @@
 pub mod cargo;
 pub mod composer;
+pub mod dart;
 pub mod go;
 pub mod gradle;
 pub mod node;
@@ -9,6 +10,7 @@ pub mod ruby;
 
 pub use cargo::{CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, MetadataFetcher};
 pub use composer::{ComposerDiscoverer, ComposerDiscoveryError};
+pub use dart::{DartDiscoverer, DartDiscoveryError, HttpPubDevClient, PubDevFetcher};
 pub use go::{GoDiscoverer, GoDiscoveryError};
 pub use gradle::{GradleDiscoverer, GradleDiscoveryError, HttpMavenClient, MavenFetcher};
 pub use node::{NodeDiscoverer, NodeDiscoveryError};
