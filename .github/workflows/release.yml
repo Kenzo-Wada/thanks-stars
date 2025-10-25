@@ -458,4 +458,4 @@ jobs:
       - name: Publish package to npm
         run: |
           set -euo pipefail
-          pnpm publish --access public --provenance
+          pnpm publish --access public --provenance --no-git-checks
