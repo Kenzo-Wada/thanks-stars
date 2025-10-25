@@ -121,13 +121,35 @@ async function main() {
 
   const version = pkg.version;
   const tag = `v${version}`;
-  const assetName = `thanks-stars-${tag}-${target.triple}.${target.ext}`;
-  const url = `https://github.com/Kenzo-Wada/thanks-stars/releases/download/${tag}/${assetName}`;
+  const assetNameCandidates = [
+    `thanks-stars-${tag}-${target.triple}.${target.ext}`,
+    `thanks-stars-${target.triple}.${target.ext}`
+  ];
 
-  const tempFile = path.join(os.tmpdir(), `${assetName}`);
+  const tempFile = path.join(os.tmpdir(), `thanks-stars-${target.triple}.${target.ext}`);
   try {
-    console.log(`Downloading ${url}`);
-    await download(url, tempFile);
+    let downloadedAsset = null;
+    let lastError = null;
+    for (const assetName of assetNameCandidates) {
+      const url = `https://github.com/Kenzo-Wada/thanks-stars/releases/download/${tag}/${assetName}`;
+      console.log(`Downloading ${url}`);
+      try {
+        await download(url, tempFile);
+        downloadedAsset = assetName;
+        break;
+      } catch (error) {
+        lastError = error;
+        if (error?.message?.includes('(status: 404)')) {
+          console.warn(`Asset not found: ${assetName}. Trying next candidate if available.`);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    if (!downloadedAsset) {
+      throw lastError ?? new Error('Failed to download any release asset.');
+    }
 
     const binDir = path.join(__dirname, 'bin');
     await extractArchive(tempFile, binDir, target.ext);
