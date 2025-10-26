@@ -27,6 +27,7 @@ The following ecosystems are currently detected when you run the tool:
 | Python          | `pyproject.toml` / `requirements.txt` / `Pipfile` / `Pipfile.lock` / `uv.lock` | [`src/ecosystems/python.rs`](src/ecosystems/python.rs)     |
 | R (renv)        | `renv.lock`                                                                    | [`src/ecosystems/renv.rs`](src/ecosystems/renv.rs)         |
 | Gradle          | `gradle.lockfile` / `build.gradle` / `build.gradle.kts`                        | [`src/ecosystems/gradle.rs`](src/ecosystems/gradle.rs)     |
+| Maven           | `pom.xml`                                                                      | [`src/ecosystems/maven.rs`](src/ecosystems/maven.rs)       |
 
 Looking for support for a different ecosystem? [Open an ecosystem support request](https://github.com/Kenzo-Wada/thanks-stars/issues/new?template=ecosystem_support_request.md) and tell us about the manifest and lockfiles we should detect.
 

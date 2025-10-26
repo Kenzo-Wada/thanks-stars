@@ -4,9 +4,9 @@ use std::thread;
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
     ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, DenoDiscoverer, DenoDiscoveryError,
-    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, NodeDiscoverer,
-    NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError,
-    RubyDiscoverer, RubyDiscoveryError,
+    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, MavenDiscoverer,
+    MavenDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer,
+    PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -29,6 +29,7 @@ pub enum Framework {
     Ruby,
     Python,
     Gradle,
+    Maven,
     Renv,
 }
 
@@ -53,6 +54,8 @@ pub enum DiscoveryError {
     #[error(transparent)]
     Gradle(Box<GradleDiscoveryError>),
     #[error(transparent)]
+    Maven(Box<MavenDiscoveryError>),
+    #[error(transparent)]
     Renv(Box<RenvDiscoveryError>),
 }
 
@@ -75,6 +78,7 @@ impl_from_discovery_error!(Composer, ComposerDiscoveryError);
 impl_from_discovery_error!(Ruby, RubyDiscoveryError);
 impl_from_discovery_error!(Python, PythonDiscoveryError);
 impl_from_discovery_error!(Gradle, GradleDiscoveryError);
+impl_from_discovery_error!(Maven, MavenDiscoveryError);
 impl_from_discovery_error!(Renv, RenvDiscoveryError);
 
 pub trait Discoverer {
@@ -120,6 +124,9 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
         || project_root.join("build.gradle.kts").exists()
     {
         frameworks.push(Framework::Gradle);
+    }
+    if project_root.join("pom.xml").exists() {
+        frameworks.push(Framework::Maven);
     }
     if project_root.join("renv.lock").exists() {
         frameworks.push(Framework::Renv);
@@ -172,6 +179,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Gradle => {
                             let discoverer = GradleDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Maven => {
+                            let discoverer = MavenDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                         Framework::Renv => {
