@@ -3,9 +3,10 @@ use std::thread;
 
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
-    ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, GoDiscoverer, GoDiscoveryError,
-    GradleDiscoverer, GradleDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer,
-    PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
+    ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, DenoDiscoverer, DenoDiscoveryError,
+    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, NodeDiscoverer,
+    NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError,
+    RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -20,6 +21,7 @@ pub struct Repository {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Framework {
     Node,
+    Deno,
     Cargo,
     Go,
     Dart,
@@ -34,6 +36,8 @@ pub enum Framework {
 pub enum DiscoveryError {
     #[error(transparent)]
     Node(Box<NodeDiscoveryError>),
+    #[error(transparent)]
+    Deno(Box<DenoDiscoveryError>),
     #[error(transparent)]
     Cargo(Box<CargoDiscoveryError>),
     #[error(transparent)]
@@ -63,6 +67,7 @@ macro_rules! impl_from_discovery_error {
 }
 
 impl_from_discovery_error!(Node, NodeDiscoveryError);
+impl_from_discovery_error!(Deno, DenoDiscoveryError);
 impl_from_discovery_error!(Cargo, CargoDiscoveryError);
 impl_from_discovery_error!(Go, GoDiscoveryError);
 impl_from_discovery_error!(Dart, DartDiscoveryError);
@@ -80,6 +85,12 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     let mut frameworks = Vec::new();
     if project_root.join("package.json").exists() {
         frameworks.push(Framework::Node);
+    }
+    if ["deno.lock", "deno.json", "deno.jsonc", "jsr.json"]
+        .iter()
+        .any(|file| project_root.join(file).exists())
+    {
+        frameworks.push(Framework::Deno);
     }
     if project_root.join("Cargo.toml").exists() {
         frameworks.push(Framework::Cargo);
@@ -129,6 +140,10 @@ pub fn discover_for_frameworks(
                     let repositories = match framework {
                         Framework::Node => {
                             let discoverer = NodeDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Deno => {
+                            let discoverer = DenoDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                         Framework::Cargo => {

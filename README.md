@@ -18,6 +18,8 @@ The following ecosystems are currently detected when you run the tool:
 | --------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
 | Cargo (Rust)    | `Cargo.toml`                                                                   | [`src/ecosystems/cargo.rs`](src/ecosystems/cargo.rs)       |
 | Node.js         | `package.json`                                                                 | [`src/ecosystems/node.rs`](src/ecosystems/node.rs)         |
+| Deno            | `deno.lock`, `deno.json`, `deno.jsonc`                                          | [`src/ecosystems/deno.rs`](src/ecosystems/deno.rs)         |
+| JSR             | `jsr.json`                                                                      | [`src/ecosystems/jsr.rs`](src/ecosystems/jsr.rs)           |
 | Go (Go Modules) | `go.mod`                                                                       | [`src/ecosystems/go.rs`](src/ecosystems/go.rs)             |
 | Dart            | `pubspec.yaml`                                                                 | [`src/ecosystems/dart.rs`](src/ecosystems/dart.rs)         |
 | Composer (PHP)  | `composer.lock` / `composer.json`                                              | [`src/ecosystems/composer.rs`](src/ecosystems/composer.rs) |

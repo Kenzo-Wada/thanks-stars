@@ -928,6 +928,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonc-parser"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ec4ac49f13c7b00f435f8a5bb55d725705e2cf620df35a5859321595102eb7e"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1650,6 +1659,7 @@ dependencies = [
  "directories",
  "httpmock",
  "indicatif",
+ "jsonc-parser",
  "owo-colors",
  "predicates",
  "quick-xml",
