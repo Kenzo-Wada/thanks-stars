@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -64,14 +64,18 @@ fn main() -> Result<()> {
 
 fn handle_auth(args: AuthArgs, config: &ConfigManager) -> Result<()> {
     let token = match args.token {
-        Some(token) if !token.trim().is_empty() => token,
+        Some(token) if !token.trim().is_empty() => token.trim().to_string(),
         _ => prompt_for_token()?,
     };
 
     config
-        .save_token(token.trim())
+        .save_token(&token)
         .context("failed to save GitHub token")?;
     println!("Token saved to {}", config.config_file().display());
+
+    if let Err(err) = invite_to_star_thanks_stars(&token) {
+        eprintln!("Warning: failed to check thanks-stars star status: {err}");
+    }
     Ok(())
 }
 
@@ -115,6 +119,56 @@ fn prompt_for_token() -> Result<String> {
         return Err(anyhow!("token must not be empty"));
     }
     Ok(token)
+}
+
+const THANKS_STARS_OWNER: &str = "Kenzo-Wada";
+const THANKS_STARS_REPO: &str = "thanks-stars";
+
+fn invite_to_star_thanks_stars(token: &str) -> Result<()> {
+    if !io::stdin().is_terminal() {
+        return Ok(());
+    }
+
+    let client = create_client(token.to_string())?;
+    let already_starred = client.viewer_has_starred(THANKS_STARS_OWNER, THANKS_STARS_REPO)?;
+
+    if already_starred {
+        return Ok(());
+    }
+
+    if prompt_yes_no("Would you like to star thanks-stars as well? [Y/n] ")? {
+        client.star(THANKS_STARS_OWNER, THANKS_STARS_REPO)?;
+        println!("Thank you! Starred thanks-stars.");
+    }
+
+    Ok(())
+}
+
+fn prompt_yes_no(prompt: &str) -> Result<bool> {
+    loop {
+        print!("{}", prompt);
+        io::stdout().flush().ok();
+
+        let mut input = String::new();
+        let bytes_read = io::stdin()
+            .read_line(&mut input)
+            .context("failed to read response from stdin")?;
+
+        if bytes_read == 0 {
+            println!();
+            return Ok(true);
+        }
+
+        let trimmed = input.trim();
+        let normalized = trimmed.to_ascii_lowercase();
+        if trimmed.is_empty() || matches!(normalized.as_str(), "y" | "yes") {
+            return Ok(true);
+        } else if matches!(normalized.as_str(), "n" | "no") {
+            return Ok(false);
+        } else {
+            println!("Please enter Y or n.");
+        }
+    }
 }
 
 struct CliRunHandler {
