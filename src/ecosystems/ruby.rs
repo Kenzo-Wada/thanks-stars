@@ -9,6 +9,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 
 use crate::discovery::{parse_github_repository, Repository};
+use crate::http;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RubyDiscoveryError {
@@ -46,18 +47,16 @@ impl HttpRubyGemsClient {
     const DEFAULT_BASE_URL: &'static str = "https://rubygems.org/api/v1/gems";
 
     pub fn new() -> Self {
-        Self {
-            client: Client::new(),
-            base_url: Self::DEFAULT_BASE_URL.to_string(),
-        }
+        Self::with_client_and_base(http::shared_client(), Self::DEFAULT_BASE_URL.to_string())
+    }
+
+    fn with_client_and_base(client: Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 
     #[cfg(test)]
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
-        Self {
-            client: Client::new(),
-            base_url: base_url.into(),
-        }
+        Self::with_client_and_base(Client::new(), base_url.into())
     }
 }
 

@@ -64,19 +64,22 @@ impl GitHubApi for GitHubClient {
             .map_err(GitHubError::from)?;
 
         let status = response.status();
-        let body = response.text().unwrap_or_default();
+        let body = response.bytes().map_err(GitHubError::from)?;
 
         if !status.is_success() {
             return Err(GitHubError::Api {
                 status: status.as_u16(),
-                body,
+                body: String::from_utf8_lossy(&body).into_owned(),
             });
         }
 
         let parsed: GraphqlResponse =
-            serde_json::from_str(&body).map_err(|err| GitHubError::Api {
+            serde_json::from_slice(&body).map_err(|err| GitHubError::Api {
                 status: status.as_u16(),
-                body: format!("failed to parse GraphQL response: {err}; body: {body}"),
+                body: format!(
+                    "failed to parse GraphQL response: {err}; body: {}",
+                    String::from_utf8_lossy(&body)
+                ),
             })?;
 
         if let Some(errors) = parsed.errors {

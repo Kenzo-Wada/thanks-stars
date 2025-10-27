@@ -8,6 +8,7 @@ use reqwest::StatusCode;
 use serde_yaml::Value as YamlValue;
 
 use crate::discovery::{parse_github_repository, Repository};
+use crate::http;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HaskellDiscoveryError {
@@ -51,18 +52,16 @@ impl HttpHackageClient {
     const DEFAULT_BASE_URL: &'static str = "https://hackage.haskell.org/package";
 
     pub fn new() -> Self {
-        Self {
-            client: Client::new(),
-            base_url: Self::DEFAULT_BASE_URL.to_string(),
-        }
+        Self::with_client_and_base(http::shared_client(), Self::DEFAULT_BASE_URL.to_string())
+    }
+
+    fn with_client_and_base(client: Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 
     #[cfg(test)]
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
-        Self {
-            client: Client::new(),
-            base_url: base_url.into(),
-        }
+        Self::with_client_and_base(Client::new(), base_url.into())
     }
 }
 
@@ -249,11 +248,9 @@ fn collect_package_yaml_dependencies(
                         }
                         YamlValue::Mapping(map) => {
                             if let Some(name) = map
-                                .get(&YamlValue::from("package"))
+                                .get("package")
                                 .and_then(|v| v.as_str())
-                                .or_else(|| {
-                                    map.get(&YamlValue::from("name")).and_then(|v| v.as_str())
-                                })
+                                .or_else(|| map.get("name").and_then(|v| v.as_str()))
                             {
                                 if let Some(name) = parse_dependency_name(name) {
                                     add_dependency(dependencies, &name, "package.yaml");
@@ -392,7 +389,7 @@ fn parse_dependency_name(input: &str) -> Option<String> {
         return None;
     }
     let mut chars = trimmed.chars();
-    if chars.next()?.is_digit(10) {
+    if chars.next()?.is_ascii_digit() {
         return None;
     }
     let name = trimmed

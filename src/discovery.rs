@@ -167,83 +167,93 @@ pub fn discover_for_frameworks(
     project_root: &Path,
     frameworks: &[Framework],
 ) -> Result<Vec<Repository>, DiscoveryError> {
-    thread::scope(|scope| {
-        let mut handles = Vec::with_capacity(frameworks.len());
+    match frameworks {
+        [] => Ok(Vec::new()),
+        [framework] => discover_for_framework(project_root, *framework),
+        _ => thread::scope(|scope| {
+            let mut handles = Vec::with_capacity(frameworks.len());
 
-        for (index, framework) in frameworks.iter().copied().enumerate() {
-            handles.push(scope.spawn(
-                move || -> Result<(usize, Vec<Repository>), DiscoveryError> {
-                    let repositories = match framework {
-                        Framework::Node => {
-                            let discoverer = NodeDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Deno => {
-                            let discoverer = DenoDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Cargo => {
-                            let discoverer = CargoDiscoverer::new(CommandMetadataFetcher);
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Go => {
-                            let discoverer = GoDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Dart => {
-                            let discoverer = DartDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Composer => {
-                            let discoverer = ComposerDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Ruby => {
-                            let discoverer = RubyDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Python => {
-                            let discoverer = PythonDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Gradle => {
-                            let discoverer = GradleDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Maven => {
-                            let discoverer = MavenDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Renv => {
-                            let discoverer = RenvDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                        Framework::Haskell => {
-                            let discoverer = HaskellDiscoverer::new();
-                            discoverer.discover(project_root)?
-                        }
-                    };
+            for (index, framework) in frameworks.iter().copied().enumerate() {
+                handles.push(scope.spawn(
+                    move || -> Result<(usize, Vec<Repository>), DiscoveryError> {
+                        let repositories = discover_for_framework(project_root, framework)?;
+                        Ok((index, repositories))
+                    },
+                ));
+            }
 
-                    Ok((index, repositories))
-                },
-            ));
+            let mut ordered: Vec<Option<Vec<Repository>>> = vec![None; frameworks.len()];
+            for handle in handles {
+                let (index, repos) = handle.join().expect("framework discovery task panicked")?;
+                ordered[index] = Some(repos);
+            }
+
+            let mut repositories = Vec::new();
+            for repos in ordered.into_iter().flatten() {
+                repositories.extend(repos);
+            }
+
+            Ok(repositories)
+        }),
+    }
+}
+
+fn discover_for_framework(
+    project_root: &Path,
+    framework: Framework,
+) -> Result<Vec<Repository>, DiscoveryError> {
+    let repositories = match framework {
+        Framework::Node => {
+            let discoverer = NodeDiscoverer::new();
+            discoverer.discover(project_root)?
         }
-
-        let mut ordered = Vec::with_capacity(handles.len());
-        for handle in handles {
-            let result = handle.join().expect("framework discovery task panicked")?;
-            ordered.push(result);
+        Framework::Deno => {
+            let discoverer = DenoDiscoverer::new();
+            discoverer.discover(project_root)?
         }
-
-        ordered.sort_by_key(|(index, _)| *index);
-
-        let mut repositories = Vec::new();
-        for (_, mut repos) in ordered {
-            repositories.append(&mut repos);
+        Framework::Cargo => {
+            let discoverer = CargoDiscoverer::new(CommandMetadataFetcher);
+            discoverer.discover(project_root)?
         }
+        Framework::Go => {
+            let discoverer = GoDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Dart => {
+            let discoverer = DartDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Composer => {
+            let discoverer = ComposerDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Ruby => {
+            let discoverer = RubyDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Python => {
+            let discoverer = PythonDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Gradle => {
+            let discoverer = GradleDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Maven => {
+            let discoverer = MavenDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Renv => {
+            let discoverer = RenvDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+        Framework::Haskell => {
+            let discoverer = HaskellDiscoverer::new();
+            discoverer.discover(project_root)?
+        }
+    };
 
-        Ok(repositories)
-    })
+    Ok(repositories)
 }
 
 pub fn parse_github_repository(input: &str) -> Option<Repository> {

@@ -2,6 +2,7 @@ pub mod config;
 pub mod discovery;
 pub mod ecosystems;
 pub mod github;
+pub mod http;
 
 use std::collections::HashSet;
 use std::path::Path;

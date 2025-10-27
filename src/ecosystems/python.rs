@@ -10,6 +10,7 @@ use serde_json::Value as JsonValue;
 use toml::Value as TomlValue;
 
 use crate::discovery::{parse_github_repository, Repository};
+use crate::http;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PythonDiscoveryError {
@@ -63,18 +64,16 @@ impl HttpPyPiClient {
     const DEFAULT_BASE_URL: &'static str = "https://pypi.org/pypi";
 
     pub fn new() -> Self {
-        Self {
-            client: Client::new(),
-            base_url: Self::DEFAULT_BASE_URL.to_string(),
-        }
+        Self::with_client_and_base(http::shared_client(), Self::DEFAULT_BASE_URL.to_string())
+    }
+
+    fn with_client_and_base(client: Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 
     #[cfg(test)]
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
-        Self {
-            client: Client::new(),
-            base_url: base_url.into(),
-        }
+        Self::with_client_and_base(Client::new(), base_url.into())
     }
 }
 
@@ -117,36 +116,72 @@ struct PyPiInfo {
 }
 
 impl PyPiProject {
-    pub fn candidate_urls(&self) -> Vec<String> {
-        let mut urls = Vec::new();
-        let mut seen = BTreeSet::new();
+    pub fn candidate_urls(&self) -> impl Iterator<Item = String> + '_ {
+        CandidateUrls {
+            project_urls: self.info.project_urls.as_ref(),
+            priority: CandidateUrls::PRIORITY_KEYS.into_iter(),
+            values: self.info.project_urls.as_ref().map(|map| map.values()),
+            home_page: self.info.home_page.as_deref(),
+            seen: BTreeSet::new(),
+        }
+    }
+}
 
-        if let Some(map) = &self.info.project_urls {
-            const PRIORITY_KEYS: [&str; 4] = ["Source", "Homepage", "Code", "Repository"];
-            for key in PRIORITY_KEYS {
+struct CandidateUrls<'a> {
+    project_urls: Option<&'a BTreeMap<String, String>>,
+    priority: std::array::IntoIter<&'static str, 4>,
+    values: Option<std::collections::btree_map::Values<'a, String, String>>,
+    home_page: Option<&'a str>,
+    seen: BTreeSet<String>,
+}
+
+impl<'a> CandidateUrls<'a> {
+    const PRIORITY_KEYS: [&'static str; 4] = ["Source", "Homepage", "Code", "Repository"];
+}
+
+fn normalize_candidate(seen: &mut BTreeSet<String>, value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let normalized = trimmed.to_lowercase();
+    if seen.insert(normalized) {
+        Some(trimmed.to_string())
+    } else {
+        None
+    }
+}
+
+impl<'a> Iterator for CandidateUrls<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for key in self.priority.by_ref() {
+            if let Some(map) = self.project_urls {
                 if let Some(value) = map.get(key) {
-                    let value = value.trim();
-                    if !value.is_empty() && seen.insert(value.to_lowercase()) {
-                        urls.push(value.to_string());
+                    if let Some(candidate) = normalize_candidate(&mut self.seen, value) {
+                        return Some(candidate);
                     }
                 }
             }
-            for value in map.values() {
-                let value = value.trim();
-                if !value.is_empty() && seen.insert(value.to_lowercase()) {
-                    urls.push(value.to_string());
+        }
+
+        if let Some(values) = self.values.as_mut() {
+            for value in values.by_ref() {
+                if let Some(candidate) = normalize_candidate(&mut self.seen, value) {
+                    return Some(candidate);
                 }
             }
+            self.values = None;
         }
 
-        if let Some(home) = &self.info.home_page {
-            let home = home.trim();
-            if !home.is_empty() && seen.insert(home.to_lowercase()) {
-                urls.push(home.to_string());
+        if let Some(home) = self.home_page.take() {
+            if let Some(candidate) = normalize_candidate(&mut self.seen, home) {
+                return Some(candidate);
             }
         }
 
-        urls
+        None
     }
 }
 

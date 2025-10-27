@@ -10,7 +10,7 @@ lint:
     cargo clippy --all-targets --all-features -- -D warnings
 
 test:
-    cargo pretty-test
+    cargo nextest run
 
 check:
     just fmt-check

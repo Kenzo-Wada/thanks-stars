@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde_yaml::{Mapping, Value};
 
 use crate::discovery::{parse_github_repository, Repository};
+use crate::http;
 
 const PUBSPEC_FILE: &str = "pubspec.yaml";
 
@@ -62,18 +63,16 @@ impl HttpPubDevClient {
     const DEFAULT_BASE_URL: &'static str = "https://pub.dev/api/packages";
 
     pub fn new() -> Self {
-        Self {
-            client: Client::new(),
-            base_url: Self::DEFAULT_BASE_URL.to_string(),
-        }
+        Self::with_client_and_base(http::shared_client(), Self::DEFAULT_BASE_URL.to_string())
+    }
+
+    fn with_client_and_base(client: Client, base_url: String) -> Self {
+        Self { client, base_url }
     }
 
     #[cfg(test)]
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
-        Self {
-            client: Client::new(),
-            base_url: base_url.into(),
-        }
+        Self::with_client_and_base(Client::new(), base_url.into())
     }
 }
 
@@ -118,30 +117,41 @@ struct PubDevPubspec {
 }
 
 impl PubDevPackage {
-    pub fn candidate_urls(&self) -> Vec<String> {
-        let mut urls = Vec::new();
-        let mut seen = BTreeSet::new();
-
+    pub fn candidate_urls(&self) -> impl Iterator<Item = String> + '_ {
         let pubspec = &self.latest.pubspec;
-        for value in [
-            pubspec.repository.as_deref(),
-            pubspec.homepage.as_deref(),
-            pubspec.issue_tracker.as_deref(),
-            pubspec.documentation.as_deref(),
-        ]
-        .into_iter()
-        .flatten()
-        {
-            let trimmed = value.trim();
+        CandidateUrls {
+            sources: [
+                pubspec.repository.as_deref(),
+                pubspec.homepage.as_deref(),
+                pubspec.issue_tracker.as_deref(),
+                pubspec.documentation.as_deref(),
+            ]
+            .into_iter(),
+            seen: BTreeSet::new(),
+        }
+    }
+}
+
+struct CandidateUrls<'a> {
+    sources: std::array::IntoIter<Option<&'a str>, 4>,
+    seen: BTreeSet<String>,
+}
+
+impl<'a> Iterator for CandidateUrls<'a> {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(candidate) = self.sources.next().flatten() {
+            let trimmed = candidate.trim();
             if trimmed.is_empty() {
                 continue;
             }
-            if seen.insert(trimmed.to_lowercase()) {
-                urls.push(trimmed.to_string());
+            let normalized = trimmed.to_lowercase();
+            if self.seen.insert(normalized) {
+                return Some(trimmed.to_string());
             }
         }
-
-        urls
+        None
     }
 }
 
