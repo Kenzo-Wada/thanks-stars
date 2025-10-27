@@ -12,13 +12,52 @@ readme = "README.md"
 keywords = ["github", "stars", "cli", "dependencies"]
 categories = ["command-line-utilities"]
 
+[features]
+default = [
+  "ecosystem-cargo",
+  "ecosystem-composer",
+  "ecosystem-dart",
+  "ecosystem-deno",
+  "ecosystem-go",
+  "ecosystem-gradle",
+  "ecosystem-haskell",
+  "ecosystem-maven",
+  "ecosystem-node",
+  "ecosystem-python",
+  "ecosystem-renv",
+  "ecosystem-ruby",
+]
+ecosystem-cargo = []
+ecosystem-composer = []
+ecosystem-dart = ["dep:serde_yaml"]
+ecosystem-deno = ["dep:jsonc-parser", "ecosystem-jsr"]
+ecosystem-go = []
+ecosystem-gradle = []
+ecosystem-haskell = ["dep:serde_yaml"]
+ecosystem-jsr = []
+ecosystem-maven = ["dep:quick-xml"]
+ecosystem-node = []
+ecosystem-python = []
+ecosystem-renv = []
+ecosystem-ruby = []
+
 [profile.dist]
 inherits = "release"
 lto = "thin"
+opt-level = "s"
+codegen-units = 1
+strip = true
+panic = "abort"
 
 [dependencies]
 anyhow = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", default-features = false, features = [
+  "derive",
+  "std",
+  "help",
+  "usage",
+  "error-context",
+] }
 directories = "6"
 reqwest = { version = "0.12", default-features = false, features = [
   "blocking",
@@ -27,7 +66,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
+serde_yaml = { version = "0.9", optional = true }
 toml = "0.9"
 thiserror = "2"
 url = "2"
@@ -35,8 +74,8 @@ indicatif = "0.18"
 owo-colors = { version = "4", features = ["supports-colors"] }
 supports-color = "3.0"
 regex = "1"
-quick-xml = "0.38.3"
-jsonc-parser = { version = "0.27", features = ["serde"] }
+quick-xml = { version = "0.38.3", optional = true }
+jsonc-parser = { version = "0.27", features = ["serde"], optional = true }
 
 [dev-dependencies]
 assert_cmd = "2"

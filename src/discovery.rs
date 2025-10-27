@@ -1,14 +1,30 @@
 use std::path::Path;
 use std::thread;
 
-use crate::ecosystems::{
-    CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
-    ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, DenoDiscoverer, DenoDiscoveryError,
-    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, HaskellDiscoverer,
-    HaskellDiscoveryError, MavenDiscoverer, MavenDiscoveryError, NodeDiscoverer,
-    NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError,
-    RubyDiscoverer, RubyDiscoveryError,
-};
+#[cfg(feature = "ecosystem-cargo")]
+use crate::ecosystems::{CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher};
+#[cfg(feature = "ecosystem-composer")]
+use crate::ecosystems::{ComposerDiscoverer, ComposerDiscoveryError};
+#[cfg(feature = "ecosystem-dart")]
+use crate::ecosystems::{DartDiscoverer, DartDiscoveryError};
+#[cfg(feature = "ecosystem-deno")]
+use crate::ecosystems::{DenoDiscoverer, DenoDiscoveryError};
+#[cfg(feature = "ecosystem-go")]
+use crate::ecosystems::{GoDiscoverer, GoDiscoveryError};
+#[cfg(feature = "ecosystem-gradle")]
+use crate::ecosystems::{GradleDiscoverer, GradleDiscoveryError};
+#[cfg(feature = "ecosystem-haskell")]
+use crate::ecosystems::{HaskellDiscoverer, HaskellDiscoveryError};
+#[cfg(feature = "ecosystem-maven")]
+use crate::ecosystems::{MavenDiscoverer, MavenDiscoveryError};
+#[cfg(feature = "ecosystem-node")]
+use crate::ecosystems::{NodeDiscoverer, NodeDiscoveryError};
+#[cfg(feature = "ecosystem-python")]
+use crate::ecosystems::{PythonDiscoverer, PythonDiscoveryError};
+#[cfg(feature = "ecosystem-renv")]
+use crate::ecosystems::{RenvDiscoverer, RenvDiscoveryError};
+#[cfg(feature = "ecosystem-ruby")]
+use crate::ecosystems::{RubyDiscoverer, RubyDiscoveryError};
 use url::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -21,44 +37,68 @@ pub struct Repository {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Framework {
+    #[cfg(feature = "ecosystem-node")]
     Node,
+    #[cfg(feature = "ecosystem-deno")]
     Deno,
+    #[cfg(feature = "ecosystem-cargo")]
     Cargo,
+    #[cfg(feature = "ecosystem-go")]
     Go,
+    #[cfg(feature = "ecosystem-dart")]
     Dart,
+    #[cfg(feature = "ecosystem-composer")]
     Composer,
+    #[cfg(feature = "ecosystem-ruby")]
     Ruby,
+    #[cfg(feature = "ecosystem-python")]
     Python,
+    #[cfg(feature = "ecosystem-gradle")]
     Gradle,
+    #[cfg(feature = "ecosystem-maven")]
     Maven,
+    #[cfg(feature = "ecosystem-renv")]
     Renv,
+    #[cfg(feature = "ecosystem-haskell")]
     Haskell,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum DiscoveryError {
+    #[cfg(feature = "ecosystem-node")]
     #[error(transparent)]
     Node(Box<NodeDiscoveryError>),
+    #[cfg(feature = "ecosystem-deno")]
     #[error(transparent)]
     Deno(Box<DenoDiscoveryError>),
+    #[cfg(feature = "ecosystem-cargo")]
     #[error(transparent)]
     Cargo(Box<CargoDiscoveryError>),
+    #[cfg(feature = "ecosystem-go")]
     #[error(transparent)]
     Go(Box<GoDiscoveryError>),
+    #[cfg(feature = "ecosystem-dart")]
     #[error(transparent)]
     Dart(Box<DartDiscoveryError>),
+    #[cfg(feature = "ecosystem-composer")]
     #[error(transparent)]
     Composer(Box<ComposerDiscoveryError>),
+    #[cfg(feature = "ecosystem-ruby")]
     #[error(transparent)]
     Ruby(Box<RubyDiscoveryError>),
+    #[cfg(feature = "ecosystem-python")]
     #[error(transparent)]
     Python(Box<PythonDiscoveryError>),
+    #[cfg(feature = "ecosystem-gradle")]
     #[error(transparent)]
     Gradle(Box<GradleDiscoveryError>),
+    #[cfg(feature = "ecosystem-maven")]
     #[error(transparent)]
     Maven(Box<MavenDiscoveryError>),
+    #[cfg(feature = "ecosystem-renv")]
     #[error(transparent)]
     Renv(Box<RenvDiscoveryError>),
+    #[cfg(feature = "ecosystem-haskell")]
     #[error(transparent)]
     Haskell(Box<HaskellDiscoveryError>),
 }
@@ -73,17 +113,29 @@ macro_rules! impl_from_discovery_error {
     };
 }
 
+#[cfg(feature = "ecosystem-node")]
 impl_from_discovery_error!(Node, NodeDiscoveryError);
+#[cfg(feature = "ecosystem-deno")]
 impl_from_discovery_error!(Deno, DenoDiscoveryError);
+#[cfg(feature = "ecosystem-cargo")]
 impl_from_discovery_error!(Cargo, CargoDiscoveryError);
+#[cfg(feature = "ecosystem-go")]
 impl_from_discovery_error!(Go, GoDiscoveryError);
+#[cfg(feature = "ecosystem-dart")]
 impl_from_discovery_error!(Dart, DartDiscoveryError);
+#[cfg(feature = "ecosystem-composer")]
 impl_from_discovery_error!(Composer, ComposerDiscoveryError);
+#[cfg(feature = "ecosystem-ruby")]
 impl_from_discovery_error!(Ruby, RubyDiscoveryError);
+#[cfg(feature = "ecosystem-python")]
 impl_from_discovery_error!(Python, PythonDiscoveryError);
+#[cfg(feature = "ecosystem-gradle")]
 impl_from_discovery_error!(Gradle, GradleDiscoveryError);
+#[cfg(feature = "ecosystem-maven")]
 impl_from_discovery_error!(Maven, MavenDiscoveryError);
+#[cfg(feature = "ecosystem-renv")]
 impl_from_discovery_error!(Renv, RenvDiscoveryError);
+#[cfg(feature = "ecosystem-haskell")]
 impl_from_discovery_error!(Haskell, HaskellDiscoveryError);
 
 pub trait Discoverer {
@@ -92,30 +144,38 @@ pub trait Discoverer {
 
 pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     let mut frameworks = Vec::new();
+    #[cfg(feature = "ecosystem-node")]
     if project_root.join("package.json").exists() {
         frameworks.push(Framework::Node);
     }
+    #[cfg(feature = "ecosystem-deno")]
     if ["deno.lock", "deno.json", "deno.jsonc", "jsr.json"]
         .iter()
         .any(|file| project_root.join(file).exists())
     {
         frameworks.push(Framework::Deno);
     }
+    #[cfg(feature = "ecosystem-cargo")]
     if project_root.join("Cargo.toml").exists() {
         frameworks.push(Framework::Cargo);
     }
+    #[cfg(feature = "ecosystem-go")]
     if project_root.join("go.mod").exists() {
         frameworks.push(Framework::Go);
     }
+    #[cfg(feature = "ecosystem-dart")]
     if project_root.join("pubspec.yaml").exists() {
         frameworks.push(Framework::Dart);
     }
+    #[cfg(feature = "ecosystem-composer")]
     if project_root.join("composer.lock").exists() || project_root.join("composer.json").exists() {
         frameworks.push(Framework::Composer);
     }
+    #[cfg(feature = "ecosystem-ruby")]
     if project_root.join("Gemfile").exists() || project_root.join("Gemfile.lock").exists() {
         frameworks.push(Framework::Ruby);
     }
+    #[cfg(feature = "ecosystem-python")]
     if project_root.join("pyproject.toml").exists()
         || project_root.join("requirements.txt").exists()
         || project_root.join("Pipfile").exists()
@@ -124,18 +184,22 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     {
         frameworks.push(Framework::Python);
     }
+    #[cfg(feature = "ecosystem-gradle")]
     if project_root.join("gradle.lockfile").exists()
         || project_root.join("build.gradle").exists()
         || project_root.join("build.gradle.kts").exists()
     {
         frameworks.push(Framework::Gradle);
     }
+    #[cfg(feature = "ecosystem-maven")]
     if project_root.join("pom.xml").exists() {
         frameworks.push(Framework::Maven);
     }
+    #[cfg(feature = "ecosystem-renv")]
     if project_root.join("renv.lock").exists() {
         frameworks.push(Framework::Renv);
     }
+    #[cfg(feature = "ecosystem-haskell")]
     if project_root.join("package.yaml").exists()
         || project_root.join("stack.yaml").exists()
         || project_root.join("cabal.project").exists()
@@ -146,6 +210,7 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     frameworks
 }
 
+#[cfg(feature = "ecosystem-haskell")]
 fn has_cabal_file(project_root: &Path) -> bool {
     project_root
         .read_dir()
@@ -203,50 +268,62 @@ fn discover_for_framework(
     framework: Framework,
 ) -> Result<Vec<Repository>, DiscoveryError> {
     let repositories = match framework {
+        #[cfg(feature = "ecosystem-node")]
         Framework::Node => {
             let discoverer = NodeDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-deno")]
         Framework::Deno => {
             let discoverer = DenoDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-cargo")]
         Framework::Cargo => {
             let discoverer = CargoDiscoverer::new(CommandMetadataFetcher);
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-go")]
         Framework::Go => {
             let discoverer = GoDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-dart")]
         Framework::Dart => {
             let discoverer = DartDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-composer")]
         Framework::Composer => {
             let discoverer = ComposerDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-ruby")]
         Framework::Ruby => {
             let discoverer = RubyDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-python")]
         Framework::Python => {
             let discoverer = PythonDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-gradle")]
         Framework::Gradle => {
             let discoverer = GradleDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-maven")]
         Framework::Maven => {
             let discoverer = MavenDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-renv")]
         Framework::Renv => {
             let discoverer = RenvDiscoverer::new();
             discoverer.discover(project_root)?
         }
+        #[cfg(feature = "ecosystem-haskell")]
         Framework::Haskell => {
             let discoverer = HaskellDiscoverer::new();
             discoverer.discover(project_root)?
