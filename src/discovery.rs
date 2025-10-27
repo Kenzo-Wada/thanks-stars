@@ -4,9 +4,10 @@ use std::thread;
 use crate::ecosystems::{
     CargoDiscoverer, CargoDiscoveryError, CommandMetadataFetcher, ComposerDiscoverer,
     ComposerDiscoveryError, DartDiscoverer, DartDiscoveryError, DenoDiscoverer, DenoDiscoveryError,
-    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, MavenDiscoverer,
-    MavenDiscoveryError, NodeDiscoverer, NodeDiscoveryError, PythonDiscoverer,
-    PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError, RubyDiscoverer, RubyDiscoveryError,
+    GoDiscoverer, GoDiscoveryError, GradleDiscoverer, GradleDiscoveryError, HaskellDiscoverer,
+    HaskellDiscoveryError, MavenDiscoverer, MavenDiscoveryError, NodeDiscoverer,
+    NodeDiscoveryError, PythonDiscoverer, PythonDiscoveryError, RenvDiscoverer, RenvDiscoveryError,
+    RubyDiscoverer, RubyDiscoveryError,
 };
 use url::Url;
 
@@ -31,6 +32,7 @@ pub enum Framework {
     Gradle,
     Maven,
     Renv,
+    Haskell,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -57,6 +59,8 @@ pub enum DiscoveryError {
     Maven(Box<MavenDiscoveryError>),
     #[error(transparent)]
     Renv(Box<RenvDiscoveryError>),
+    #[error(transparent)]
+    Haskell(Box<HaskellDiscoveryError>),
 }
 
 macro_rules! impl_from_discovery_error {
@@ -80,6 +84,7 @@ impl_from_discovery_error!(Python, PythonDiscoveryError);
 impl_from_discovery_error!(Gradle, GradleDiscoveryError);
 impl_from_discovery_error!(Maven, MavenDiscoveryError);
 impl_from_discovery_error!(Renv, RenvDiscoveryError);
+impl_from_discovery_error!(Haskell, HaskellDiscoveryError);
 
 pub trait Discoverer {
     fn discover(&self, project_root: &Path) -> Result<Vec<Repository>, DiscoveryError>;
@@ -131,7 +136,31 @@ pub fn detect_frameworks(project_root: &Path) -> Vec<Framework> {
     if project_root.join("renv.lock").exists() {
         frameworks.push(Framework::Renv);
     }
+    if project_root.join("package.yaml").exists()
+        || project_root.join("stack.yaml").exists()
+        || project_root.join("cabal.project").exists()
+        || has_cabal_file(project_root)
+    {
+        frameworks.push(Framework::Haskell);
+    }
     frameworks
+}
+
+fn has_cabal_file(project_root: &Path) -> bool {
+    project_root
+        .read_dir()
+        .map(|entries| {
+            entries.filter_map(Result::ok).any(|entry| {
+                let path = entry.path();
+                path.is_file()
+                    && path
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext.eq_ignore_ascii_case("cabal"))
+                        .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
 }
 
 pub fn discover_for_frameworks(
@@ -187,6 +216,10 @@ pub fn discover_for_frameworks(
                         }
                         Framework::Renv => {
                             let discoverer = RenvDiscoverer::new();
+                            discoverer.discover(project_root)?
+                        }
+                        Framework::Haskell => {
+                            let discoverer = HaskellDiscoverer::new();
                             discoverer.discover(project_root)?
                         }
                     };

@@ -4,6 +4,7 @@ pub mod dart;
 pub mod deno;
 pub mod go;
 pub mod gradle;
+pub mod haskell;
 pub mod jsr;
 pub mod maven;
 pub mod node;
@@ -17,6 +18,9 @@ pub use dart::{DartDiscoverer, DartDiscoveryError, HttpPubDevClient, PubDevFetch
 pub use deno::{DenoDiscoverer, DenoDiscoveryError};
 pub use go::{GoDiscoverer, GoDiscoveryError};
 pub use gradle::{GradleDiscoverer, GradleDiscoveryError};
+pub use haskell::{
+    HackageError, HackageFetcher, HaskellDiscoverer, HaskellDiscoveryError, HttpHackageClient,
+};
 pub use jsr::{HttpJsrClient, JsrError, JsrFetcher};
 pub use maven::{
     HttpMavenClient, MavenDependencyError, MavenDiscoverer, MavenDiscoveryError, MavenError,
